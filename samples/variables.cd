@@ -1,0 +1,6 @@
+CD20 Variables
+main
+    i : bool /-- TODO Only primitive types possible
+begin
+    print "Hello World";
+end CD20 Variables
