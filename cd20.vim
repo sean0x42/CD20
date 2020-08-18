@@ -27,6 +27,7 @@ syntax keyword Type int real bool
 " Comments and TODOs
 syntax keyword cdTodo contained TODO FIXME NOTE
 syntax match cdComment "/--.*$" contains=cdTodo
+syntax region cdComment start="/\*\*" end="\*\*/"
 hi def link cdTodo Todo
 hi def link cdComment Comment
 

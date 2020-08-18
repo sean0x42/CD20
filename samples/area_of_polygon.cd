@@ -1,0 +1,14 @@
+CD20 areaOfPolygon
+main
+    int : i;
+begin
+    i += 1;
+    1 / 2;
+    x = "Hello world";
+    /-- Comment
+    3 >= 4;
+    /** Hello
+     Multi line
+     comment
+     **/
+end CD20 areaOfPolygon
