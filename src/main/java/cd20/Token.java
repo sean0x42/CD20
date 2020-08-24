@@ -2,6 +2,9 @@ package cd20;
 
 import java.util.StringJoiner;
 
+/**
+ * Represents a token within a CD20 source file.
+ */
 public class Token {
   private final TokenType type;
   private final String lexeme;
@@ -28,8 +31,8 @@ public class Token {
       joiner.add(this.lexeme);
     }
 
-    // @TODO debug text here
-    joiner.add("(" + line + ":" + column + ")");
+    // Useful for debugging
+    // joiner.add("(" + line + ":" + column + ")");
 
     return joiner.toString();
   }

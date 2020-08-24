@@ -14,23 +14,14 @@ public class App {
     this.scanner = new Scanner(reader);
   }
 
-  public void run() throws IOException {
-    while (!scanner.eof()) {
-      Token token = scanner.nextToken();
-      System.out.println(token);
-    }
-  }
-
   public static void main(String[] args) {
     Reader reader;
 
     if (args.length < 1) {
       // Read from stdin
-      System.out.println("Reading from stdin...");
       reader = new InputStreamReader(System.in);
     } else {
       // Read from file at path
-      System.out.println("Reading from file...");
       File file = new File(args[0]);
 
       try {
@@ -45,6 +36,28 @@ public class App {
       new App(reader).run();
     } catch (IOException exception) {
       exception.printStackTrace();
+    }
+  }
+
+  /**
+   * Run the application
+   */
+  public void run() throws IOException {
+    int lineWidth = 0;
+
+    while (!scanner.eof()) {
+      Token token = scanner.nextToken();
+
+      // Wrap to new line
+      if (lineWidth > 60) {
+        lineWidth = 0;
+        System.out.println();
+      }
+
+      // Print
+      String tokenStr = token.toString();
+      lineWidth += tokenStr.length() + 1;
+      System.out.print(tokenStr + " ");
     }
   }
 }
