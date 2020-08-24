@@ -56,8 +56,8 @@ public class App {
 
       // Print
       String tokenStr = token.toString();
-      lineWidth += tokenStr.length() + 1;
-      System.out.print(tokenStr + " ");
+      lineWidth += tokenStr.length();
+      System.out.print(tokenStr);
     }
   }
 }

@@ -4,14 +4,14 @@ if exists("b:current_syntax")
 	finish
 end
 
-syn keyword syntaxElementKeyword constants types is arrays
-syn keyword syntaxElementKeyword array of func void const
-syn keyword syntaxElementKeyword for repeat until input print println
-syn keyword syntaxElementKeyword return not and or xor
 
 " Keywords
 syntax keyword Conditional if else
 syntax keyword Keyword CD20 main begin end
+syntax keyword Keyword constants types is arrays
+syntax keyword Keyword array of func void const
+syntax keyword Keyword or repeat until input print println
+syntax keyword Keyword return not and or xor
 
 " Identifiers
 syntax match cdIdent "\w+" contained

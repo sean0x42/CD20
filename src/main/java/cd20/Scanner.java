@@ -71,7 +71,7 @@ public class Scanner {
     // Track line & column before consuming more
     int line = this.line;
     int column = this.column;
-    String string = "" + character;
+    String string = "";
 
     while (true) {
       Character ch = consumeChar();
@@ -81,16 +81,16 @@ public class Scanner {
         return new Token(TokenType.UNDEFINED, string, line, column);
       }
 
+      // End of string is reached
+      if (ch == '"') {
+        break; // Break before adding. We don't want to include the "
+      }
+
       string += ch;
 
       // Check for newline mid string
       if (ch == '\n') {
         return new Token(TokenType.UNDEFINED, string, line, column);
-      }
-
-      // End of string is reached
-      if (ch == '"') {
-        break;
       }
     }
 
@@ -111,7 +111,8 @@ public class Scanner {
 
     String string = "" + character;
 
-    while (reader.peek() != null && reader.peek() != ';' && !Character.isWhitespace(reader.peek())) {
+    // Consume until delimiter
+    while (!isDelimiter(reader.peek())) {
       Character ch = consumeChar();
       string += ch;
 
@@ -144,31 +145,17 @@ public class Scanner {
     int line = this.line;
     int column = this.column;
 
-    // Record state
-    boolean isInvalid = false;
-
     String identifier = "" + character;
-    Character nextChar = reader.peek();
 
     // Consume entire identifier first
-    while (nextChar != null && nextChar != ';' && !Character.isWhitespace(nextChar)) {
-      if (!Character.isLetterOrDigit(nextChar)) {
-        isInvalid = true;
-      }
-
+    while (!isDelimiter(reader.peek())) {
       identifier += consumeChar();
-      nextChar = reader.peek();
-    }
-
-    // Handle invalid
-    if (isInvalid) {
-      return new Token(TokenType.UNDEFINED, identifier, line, column);
     }
 
     // Identify keywords from identifiers
-    TokenType keyword = identifyKeyword(identifier);
-    if (keyword != null) {
-      return new Token(keyword, line, column);
+    TokenType keywordType = identifyKeyword(identifier);
+    if (keywordType != null) {
+      return new Token(keywordType, line, column);
     }
 
     return new Token(TokenType.IDENTIFIER, identifier, line, column);
@@ -253,7 +240,7 @@ public class Scanner {
   private String consumeWord() throws IOException {
     String word = "" + character;
 
-    while (reader.peek() != null && reader.peek() != ';' && !Character.isWhitespace(reader.peek())) {
+    while (!isDelimiter(reader.peek())) {
       word += consumeChar();
     }
 
@@ -267,6 +254,10 @@ public class Scanner {
     do {
       consumeChar();
     } while (character != null && character != '\n');
+  }
+
+  private static boolean isDelimiter(Character ch) {
+    return ch == null || Character.isWhitespace(ch) || !Character.isLetterOrDigit(ch);
   }
 
   /**

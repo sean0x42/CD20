@@ -1,11 +1,16 @@
 CD20 areaOfPolygon
 main
     int : anInt;
+
+func x(): void
+begin
+end
+
 begin
     anInt += 1;
     anInt = 1 / 2;
 
-    myString = "Hello world";
+    myStr = "Hello world";
 
     someComparison = 3 >= 4; /-- Single line comment
 

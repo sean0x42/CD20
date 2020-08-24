@@ -1,0 +1,8 @@
+CD20 shouldFailSyntactically
+constants
+types
+main
+begin
+    x = 1
+end
+CD20 shouldFailSyntactically

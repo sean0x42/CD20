@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A simple wrapper around a {@link BufferedReader}, which allows peeking
+ * infinitely into the future.
+ */
 public class PeekableReader {
   private BufferedReader reader;
   private List<Character> buffer = new ArrayList<Character>();
@@ -13,6 +17,10 @@ public class PeekableReader {
     this.reader = reader;
   }
 
+  /**
+   * Read and consume the next character
+   * @return {@link Character} next character
+   */
   public Character read() throws IOException {
     // Fetch from buffer first
     if (!buffer.isEmpty()) {
@@ -28,10 +36,18 @@ public class PeekableReader {
     return Character.valueOf((char) ch);
   }
 
+  /**
+   * Peek the next character
+   * @return {@link Character} next character
+   */
   public Character peek() throws IOException {
     return peek(1);
   }
 
+  /**
+   * Peek the nth character
+   * @return {@link Character} at position n
+   */
   public Character peek(int n) throws IOException {
     // Buffer is not large enough, expand
     while (buffer.size() < n) {
@@ -46,8 +62,4 @@ public class PeekableReader {
 
     return buffer.get(n - 1);
   }
-
-//   public boolean pattern(String pattern) throws IOException {
-    
-//   }
 }

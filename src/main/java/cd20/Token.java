@@ -1,7 +1,5 @@
 package cd20;
 
-import java.util.StringJoiner;
-
 /**
  * Represents a token within a CD20 source file.
  */
@@ -24,17 +22,18 @@ public class Token {
 
   @Override
   public String toString() {
-    StringJoiner joiner = new StringJoiner(" ");
-    joiner.add(this.type.toString());
+    String out = type.toString();
 
-    if (this.lexeme != null) {
-      joiner.add(this.lexeme);
+    if (lexeme != null) {
+      out += lexeme + " ";
+
+      // Append whitespace to fill out one column
+      while (out.length() % 6 != 0) {
+        out += " ";
+      }
     }
 
-    // Useful for debugging
-    // joiner.add("(" + line + ":" + column + ")");
-
-    return joiner.toString();
+    return out;
   }
 
   public TokenType getType() {
