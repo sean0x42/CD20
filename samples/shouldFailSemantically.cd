@@ -1,2 +1,9 @@
 CD20 shouldFailSemantically
 
+main
+begin
+  println q;
+end
+
+CD20 shouldFailSemantically
+

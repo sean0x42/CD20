@@ -25,7 +25,13 @@ public class Token {
     String out = type.toString();
 
     if (lexeme != null) {
-      out += lexeme + " ";
+      if (type == TokenType.STRING_LITERAL) {
+        out += "\"" + lexeme + "\"";
+      } else {
+        out += lexeme;
+      }
+
+      out += " ";
 
       // Append whitespace to fill out one column
       while (out.length() % 6 != 0) {

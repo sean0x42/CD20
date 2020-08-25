@@ -1,0 +1,42 @@
+CD20 arrs
+
+constants
+  size = 3
+
+types
+  Person is
+    age: int,
+    hasBlondHair: bool
+  end
+
+  People is array [size] of Person
+
+arrays
+  people: People
+
+main
+  idx: int
+begin
+  /-- Init
+  people[0].age = 10;
+  people[0].hasBlondHair = false;
+  people[1].age = 42;
+  people[1].hasBlondHair = false;
+  people[2].age = 96;
+  people[2].hasBlondHair = true;
+
+  /-- Print information about each person
+  for (idx = 0; idx < size)
+    println "Person ", idx, " is ", people[idx].age, " years old.";
+
+    if (people[idx].hasBlondHair)
+      println "They have blond hair.";
+    else
+      println "They do not have blond hair.";
+    end
+  end
+
+  println "Done! See you next time.";
+end
+
+CD20 arrs

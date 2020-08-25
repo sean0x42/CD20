@@ -10,7 +10,7 @@ syntax keyword Conditional if else
 syntax keyword Keyword CD20 main begin end
 syntax keyword Keyword constants types is arrays
 syntax keyword Keyword array of func void const
-syntax keyword Keyword or repeat until input print println
+syntax keyword Keyword for repeat until input print println
 syntax keyword Keyword return not and or xor
 
 " Identifiers

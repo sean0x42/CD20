@@ -1,0 +1,45 @@
+CD20 functions
+
+/**
+ * Adds two numbers together
+ **/
+func add(alpha: int, beta: int): int
+begin
+  return alpha + beta;
+end
+
+/**
+ * Divides two numbers
+ **/
+func divide(alpha: real, beta: real): real
+begin
+  return alpha / beta;
+end
+
+/**
+ * Determines whether two booleans are equal
+ **/
+func isEqual(alpha: bool, beta: bool): bool
+begin
+  return alpha == beta;
+end
+
+main
+  x: int,
+  y: int,
+  a: real,
+  b: real
+begin
+  println "Please enter two numbers add:";
+  input x, y;
+  println "=> ", add(x, y);
+
+  println "Please enter two numbers divide:";
+  input a, b;
+  println "=> ", divide(a, b);
+
+  print "Is true equal to false? ";
+  println isEqual(true, false);
+end
+
+CD20 functions

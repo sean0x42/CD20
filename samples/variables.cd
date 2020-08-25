@@ -1,6 +1,18 @@
 CD20 Variables
+
 main
-    i : bool /-- TODO Only primitive types possible
+  idx: int,
+  idx2: int,
+  toBe: bool
 begin
-    print "Hello World";
-end CD20 Variables
+  println "Hello World";
+  idx = 10;
+
+  if (toBe or not toBe)
+    println "Hmmm";
+  end
+
+  idx2 = idx;
+end
+
+CD20 Variables

@@ -1,24 +1,97 @@
 CD20 areaOfPolygon
-main
-    int : anInt;
 
-func x(): void
+types
+  /-- A single point within a polygon
+  Point is
+    x: int,
+    y: int
+  end
+  
+  PointArray is array [20] of Point
+
+arrays
+  points: PointArray
+
+/**
+ * Prompt the user for a total number of points.
+ **/
+func inputNumberOfPoints(): int
+  isValid: bool,
+  num: int
 begin
+  /-- Continually loop around until a valid response is given
+  repeat (isValid = false)
+    /-- Prompt for response
+    print "Number of points: ";
+    input num;
+  
+    isValid = num >= 0 and num <= 20;
+
+    /-- Handle invalid entry
+    if (not isValid)
+      println "Invalid. Must be a number between 0 and 20.";
+    end
+  until isValid
+
+  return num
 end
 
+/**
+ * Prompt the user for a point.
+ **/
+func inputPoint(index: int): void
+  x: int,
+  y: int
 begin
-    anInt += 1;
-    anInt = 1 / 2;
+  println "Please enter the coordinates of point ", index, ":";
 
-    myStr = "Hello world";
+  print "x: ";
+  input x;
+  points[index].x = x;
 
-    someComparison = 3 >= 4; /-- Single line comment
+  print "y: ";
+  input y;
+  points[index].y = y;
+end
 
-    /** Hello
-     Multi line
-     comment
-     **/
+/**
+ * Compute the area of the polygon
+ **/
+func computeArea(): real
+  idx: int,
+  sum: int,
+  addedX: int,
+  addedY: int
+begin
+  /-- Compute sum
+  for (idx = 0; idx < numberOfPoints - 2)
+    /-- Cannot control order of operations with brackets, so split out manually
+    addedX = points[idx + 1].x + points[idx].x;
+    addedY = points[idx + 1].y + points[idx].y;
+    sum += addedX * addedY;
+  end
 
-    aFloatingPoint = 6.8829;
-    invalidInt = 6a;
-end CD20 areaOfPolygon
+  /-- Compute absolute value
+  if (sum < 0)
+    sum = sum * -1;
+  end
+
+  return sum / 2;
+end
+
+main
+  numberOfPoints: int,
+  idx: int
+begin
+  numberOfPoints = inputNumberOfPoints();
+
+  /-- Input each child point
+  for (idx = 0; idx < numberOfPoints)
+    inputPoint(idx);
+    idx += 1;
+  end
+
+  println "Area of polygon: ", computeArea();
+end
+
+CD20 areaOfPolygon
