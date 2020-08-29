@@ -1,8 +1,8 @@
-package cd20;
+package cd20.scanner;
 
 import java.util.Set;
 
-public class ScannerUtil {
+public class ScannerUtils {
   private static final Set<Character> specialChars = Set.of(
     ',', '[', ']', '(', ')', '=', '+', '-', '*',
     '%', '^', '<', '>', ':', '!', ';', '.'

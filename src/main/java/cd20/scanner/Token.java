@@ -1,4 +1,4 @@
-package cd20;
+package cd20.scanner;
 
 /**
  * Represents a token within a CD20 source file.

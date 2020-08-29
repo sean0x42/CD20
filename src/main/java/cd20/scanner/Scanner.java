@@ -1,8 +1,11 @@
-package cd20;
+package cd20.scanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+
+import cd20.output.Annotation;
+import cd20.output.OutputController;
 
 /**
  * A lexer for CD20
@@ -13,8 +16,14 @@ public class Scanner {
   private int column = 0;
   private Character character;
 
-  public Scanner(Reader reader) {
+  private OutputController outputController;
+
+  /**
+   * Constructs a new {@link Scanner}.
+   */
+  public Scanner(Reader reader, OutputController outputController) {
     this.reader = new PeekableReader(new BufferedReader(reader));
+    this.outputController = outputController;
   }
 
   /**
@@ -25,14 +34,33 @@ public class Scanner {
   }
 
   /**
-   * Return the next token
+   * Return the next {@link Token}.
    */
   public Token nextToken() throws IOException {
+    Token token = parseToken();
+
+    // Print lexical error on undefined token
+    if (token.getType() == TokenType.UNDEFINED) {
+      Annotation annotation = new Annotation(token, "Error: Unknown token '" + token.getLexeme() + "'");
+      outputController.addAnnotation(annotation);
+    }
+
+    return token;
+  }
+
+  /**
+   * Scanns in the token at the current point.
+   */
+  public Token parseToken() throws IOException {
     // Start State
     consumeWhitespace();
 
     // Consume the next character, ready to determine which way to parse
     consumeChar();
+    
+    // Record position at token start
+    int line = this.line;
+    int column = this.column;
 
     // Handle EOF
     if (character == null) {
@@ -165,6 +193,7 @@ public class Scanner {
     character = reader.read();
     if (character != null) {
       column++;
+      outputController.addCharacter(line, character);
     }
 
     return character;
@@ -231,9 +260,9 @@ public class Scanner {
     Character nextChar = reader.peek();
 
     while (
-      !ScannerUtil.isWhitespace(nextChar) &&
+      !ScannerUtils.isWhitespace(nextChar) &&
       !Character.isLetterOrDigit(nextChar) &&
-      !ScannerUtil.isSpecialCharacter(nextChar)
+      !ScannerUtils.isSpecialCharacter(nextChar)
     ) {
       word += consumeChar();
       nextChar = reader.peek();

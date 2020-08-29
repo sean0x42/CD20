@@ -1,4 +1,4 @@
-package cd20;
+package cd20.scanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package cd20;
+package cd20.scanner;
 
 public enum TokenType {
   EOF              ("T_EOF "),
