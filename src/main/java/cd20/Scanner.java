@@ -61,7 +61,7 @@ public class Scanner {
     }
 
     // Undefined
-    return new Token(TokenType.UNDEFINED, consumeWord(), line, column);
+    return new Token(TokenType.UNDEFINED, consumeUndefined(), line, column);
   }
 
   /**
@@ -106,28 +106,18 @@ public class Scanner {
     int column = this.column;
 
     // Record state
-    boolean isInvalid = false;
     boolean isReal = false;
 
     String string = "" + character;
 
     // Consume until delimiter
-    while (!isDelimiter(reader.peek())) {
+    while (reader.peek() == '.' || Character.isDigit(reader.peek())) {
       Character ch = consumeChar();
       string += ch;
-
-      // Handle non-digit
-      if (ch != '.' && !Character.isDigit(ch)) {
-        isInvalid = true;
-      }
 
       if (ch == '.') {
         isReal = true;
       }
-    }
-
-    if (isInvalid) {
-      return new Token(TokenType.UNDEFINED, string, line, column);
     }
 
     if (isReal) {
@@ -148,7 +138,7 @@ public class Scanner {
     String identifier = "" + character;
 
     // Consume entire identifier first
-    while (!isDelimiter(reader.peek())) {
+    while (Character.isLetterOrDigit(reader.peek())) {
       identifier += consumeChar();
     }
 
@@ -234,14 +224,19 @@ public class Scanner {
   }
 
   /**
-   * Consume one word (until whitespace is found)
-   * @return Consumed word.
+   * Consume the remainder of an undefined token.
    */
-  private String consumeWord() throws IOException {
+  private String consumeUndefined() throws IOException {
     String word = "" + character;
+    Character nextChar = reader.peek();
 
-    while (!isDelimiter(reader.peek())) {
+    while (
+      !ScannerUtil.isWhitespace(nextChar) &&
+      !Character.isLetterOrDigit(nextChar) &&
+      !ScannerUtil.isSpecialCharacter(nextChar)
+    ) {
       word += consumeChar();
+      nextChar = reader.peek();
     }
 
     return word;
@@ -256,17 +251,11 @@ public class Scanner {
     } while (character != null && character != '\n');
   }
 
-  private static boolean isDelimiter(Character ch) {
-    return ch == null || Character.isWhitespace(ch) || !Character.isLetterOrDigit(ch);
-  }
-
   /**
    * Parse the current operator or delimiter (if found).
    *
    * If an operator or delimiter is found, its {@link TokenType} would be
    * returned. Otherwise null.
-   *
-   * @throws IOException
    */
   private TokenType parseOperator() throws IOException {
     switch (character) {

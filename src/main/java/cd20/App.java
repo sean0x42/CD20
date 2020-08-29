@@ -49,9 +49,17 @@ public class App {
       Token token = scanner.nextToken();
 
       // Wrap to new line
-      if (lineWidth > 60) {
+      if (lineWidth > 60 || token.getType() == TokenType.UNDEFINED) {
         lineWidth = 0;
         System.out.println();
+      }
+
+      // Handle lexical errors
+      if (token.getType() == TokenType.UNDEFINED) {
+        System.out.println(token.getType());
+        System.out.print("lexical error ");
+        System.out.println(token.getLexeme());
+        continue;
       }
 
       // Print

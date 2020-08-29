@@ -1,0 +1,12 @@
+CD20 shouldFailLexically
+
+main
+begin
+  x = ?@@#;
+
+  123abc;
+
+  abc_lmnop;
+end
+
+CD20 shouldFailLexically
