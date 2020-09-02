@@ -1,0 +1,170 @@
+<program> := CD20 <id> <globals> <funcs> <mainbody>
+<globals> := <consts><types><arrays>
+
+  <consts> := constants <initlist>
+            | ε
+<initlist> := <init><optinit>
+ <optinit> := , <initlist>
+            | ε
+    <init> := <id> = <expr>
+
+    <types> := types <typelist>
+             | ε
+ <typelist> := <type><opttype>
+  <opttype> := <typelist>
+             | ε
+     <type> := <structid> is <fields> end
+             | <typeid> is array [<expr>] of <structid>
+   <fields> := <sdecl><optfields>
+<optfields> := , <fields>
+             | ε
+
+    <arrays> := arrays <arrdecls>
+              | ε
+  <arrdecls> := <arrdecl><optarrdecl>
+<optarrdecl> := , <arrdecls>
+              | ε
+   <arrdecl> := <id>:<typeid>
+
+   <funcs> := <func> <funcs>
+            | ε
+    <func> := func <id>(<plist>): <rtype> <funcbody>
+   <rtype> := <stype>
+            | void
+   <plist> := <params>
+            | ε
+  <params> := <param><optparam>
+<optparam> := , <params>
+            | ε
+   <param> := <sdecl>
+            | <arrdecl>
+            | const <arrdecl>
+<funcbody> := <locals> begin <stats> end
+  <locals> := <dlist>
+            | ε
+   <dlist> := <decl><optdecl>
+ <optdecl> := , <dlist>
+            | ε
+    <decl> := <sdecl>
+            | <arrdecl>
+   <stype> := int
+            | real
+            | bool
+
+   <stats> := <stat>;<optstats>
+            | <strstat><optstats>
+<optstats> := <stats>
+            | ε
+
+<strstat> := <forstat>
+           | <ifstat>
+   <stat> := <repstat>
+           | <asgnstat>
+           | <iostat>
+           | <callstat>
+           | <returnstat>
+<forstat> := for (<asgnlist>; <bool>) <stats> end
+<repstat> := repeat (<asgnlist>) stats until <bool>
+
+   <asgnlist> := <asgnstat><optasgnstat>
+<optasgnstat> := , <asgnlist>
+               | ε
+
+ <ifstat> := if (<bool>) <stats> <optelse> end
+<optelse> := else <stats>
+           | ε
+
+<asgnstat> := <var> <asgnop> <bool>
+  <asgnop> := =
+            | +=
+            | -=
+            | *=
+            | /=
+
+<iostat> := input <vlist>
+          | print <prlist>
+          | println <prlist>
+
+ <callstat> := <id>(<optparams>)
+<optparams> := <elist>
+             | ε
+
+<returnstat> := return <optretstat>
+<optretstat> := <expr>
+              | ε
+
+ <vlist> := <var><optvar>
+<optvar> := , <vlist>
+          | ε
+   <var> := <id><optvar>
+<optvar> := [<expr>].<id>
+          | ε
+
+  <elist> := <bool><optbool>
+<optbool> := , <elist>
+           | ε
+
+ <bool> := <rel><bool'>
+<bool'> := <logop><rel><bool'>
+         | ε
+
+     <rel> := <optnot><expr><optrelop>
+  <optnot> := not
+            | ε
+<optrelop> := <relop><expr>
+            | ε
+
+<logop> := and
+         | or
+         | xor
+
+<relop> := ==
+         | !=
+         | >
+         | >=
+         | <=
+         | <
+
+ <expr> := <term><expr'>
+<expr'> := + <term><expr'>
+         | - <term><expr'>
+         | ε
+
+ <term> := <fact><term'>
+<term'> := * <fact><term'>
+         | / <fact><term'>
+         | % <fact><term'>
+         | ε
+
+ <fact> := <exponent><fact'>
+<fact'> := ^ <fact'>
+         | ε
+
+<exponent> := <var>
+            | <intlit>
+            | <reallit>
+            | <fncall>
+            | true
+            | false
+            | (<bool>)
+
+<fncall> := <id>(<elist>)
+          | <id>()
+
+  <fncall> := <id>(<optelist>)
+<optelist> := <elist>
+            | ε
+
+   <prlist> := <printitem><optprlist>
+<optprlist> := , <prlist>
+             | ε
+
+<printitem> := <expr>
+             | <string>
+
+<mainbody> := main <slist> begin <stats> end CD20 <id>
+   <slist> := <sdecl><optsdecl>
+            | ε
+<optsdecl> := , <slist>
+            | ε
+<sdecl>    := <id> : <stype>
