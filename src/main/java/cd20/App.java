@@ -4,49 +4,47 @@ import java.io.IOException;
 import java.io.Reader;
 
 import cd20.output.OutputController;
+import cd20.parser.Node;
+import cd20.parser.Parser;
 import cd20.scanner.Scanner;
-import cd20.scanner.Token;
-import cd20.scanner.TokenType;
 
 public class App {
-  private Scanner scanner;
-  private OutputController outputController = new OutputController();
+  private final Parser parser;
+  private final Scanner scanner;
+  private final OutputController outputController = new OutputController();
 
   public App(Reader reader) {
     this.scanner = new Scanner(reader, outputController);
+    this.parser = new Parser(scanner, outputController);
   }
 
   /**
    * Run the application
    */
   public void run() throws IOException {
-    int lineWidth = 0;
+    Node rootNode = parser.parse();
 
-    while (!scanner.eof()) {
-      Token token = scanner.nextToken();
-
-      // Wrap to new line
-      if (lineWidth > 60 || token.getType() == TokenType.UNDEFINED) {
-        lineWidth = 0;
-        System.out.println();
-      }
-
-      // Handle lexical errors
-      if (token.getType() == TokenType.UNDEFINED) {
-        System.out.println(token.getType());
-        System.out.print("lexical error ");
-        System.out.println(token.getLexeme());
-        continue;
-      }
-
-      // Print
-      String tokenStr = token.toString();
-      lineWidth += tokenStr.length();
-      System.out.print(tokenStr);
-    }
-
-    System.out.println('\n');
     System.out.println(outputController.toString());
     outputController.writeToFile("listing.txt");
+
+    System.out.println();
+    printNode(rootNode);
+  }
+
+  private void printNode(Node current) {
+    if (current == null) {
+      System.out.println("Nothing to print! Perhaps an error occurred?");
+      return;
+    }
+
+    System.out.print(current.toString());
+
+    if (current.getLeftChild() != null) {
+      printNode(current.getLeftChild());
+    }
+
+    if (current.getRightChild() != null) {
+      printNode(current.getRightChild());
+    }
   }
 }

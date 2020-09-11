@@ -50,6 +50,21 @@ public class Token {
     return this.lexeme;
   }
 
+  /**
+   * Get the approximate width of this token.
+   */
+  public int getWidth() {
+    if (lexeme == null) {
+      return 1;
+    }
+
+    if (type == TokenType.STRING_LITERAL) {
+      return lexeme.length() + 2;
+    }
+
+    return lexeme.length();
+  }
+
   public int getLine() {
     return this.line;
   }

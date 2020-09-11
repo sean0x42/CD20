@@ -32,4 +32,25 @@ public class StringUtils {
 
     return builder.toString();
   }
+  
+  /**
+   * Right pad a {@link String} with space characters.
+   */
+  public static String rightPad(int width, String string) {
+    // Some strings will already be long enough
+    if (string.length() >= width) {
+      return string;
+    }
+
+    // Add original string
+    StringBuilder builder = new StringBuilder();
+    builder.append(string);
+
+    // Pad with spaces
+    while (builder.length() < width) {
+      builder.append(' ');
+    }
+
+    return builder.toString();
+  }
 }

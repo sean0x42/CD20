@@ -15,7 +15,8 @@ public class Annotation {
   private final String annotation;
 
   public Annotation(Token token, String annotation) {
-    this(token.getLine(), token.getColumn(), token.getLexeme().length(), annotation); }
+    this(token.getLine(), token.getColumn(), token.getWidth(), annotation);
+  }
 
   public Annotation(int line, int column, String annotation) {
     this(line, column, 1, annotation);

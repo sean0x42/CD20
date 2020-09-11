@@ -92,7 +92,7 @@ public class OutputController {
 
       // Append any annotationMap
       for (Annotation annotation : annotationMap.get(idx)) {
-        builder.append(annotation.format(lineNumberWidth) + "\n");
+        builder.append('\n' + annotation.format(lineNumberWidth) + "\n");
       }
     }
 

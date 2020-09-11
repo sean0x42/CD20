@@ -1,16 +1,7 @@
- 1 | CD20 shouldFailLexically
- 2 | 
- 3 | main
- 4 | begin
- 5 |   x = ?@@#;
-           ^^^^
-           Error: Unknown token '?@@#' (5:7)
- 6 | 
- 7 |   123abc;
- 8 | 
- 9 |   abc_lmnop;
-          ^
-          Error: Unknown token '_' (9:6)
-10 | end
-11 | 
-12 | CD20 shouldFailLexically
+1 | CD20 exhaustiveSample
+2 | 
+3 | constants
+4 |   cold = true,
+5 |   name = "Sean"
+             ^^^^^^
+             Error: Expected token TIDEN, found TSTRG (5:10)
