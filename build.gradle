@@ -29,3 +29,8 @@ application {
   // Define the main class for the application.
   mainClassName = 'A1'
 }
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}

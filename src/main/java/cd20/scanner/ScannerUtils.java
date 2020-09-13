@@ -1,12 +1,12 @@
 package cd20.scanner;
 
-import java.util.Set;
+import java.util.Arrays;
 
 public class ScannerUtils {
-  private static final Set<Character> specialChars = Set.of(
+  private static final Character[] specialChars = {
     ',', '[', ']', '(', ')', '=', '+', '-', '*',
     '%', '^', '<', '>', ':', '!', ';', '.'
-  );
+  };
 
   /**
    * Determines whether the given character is whitespace, and correctly handles
@@ -23,7 +23,7 @@ public class ScannerUtils {
   public static boolean isSpecialCharacter(Character ch) {
     if (ch == null) return false;
 
-    if (specialChars.contains(ch)) {
+    if (Arrays.asList(specialChars).contains(ch)) {
       return true;
     }
 
