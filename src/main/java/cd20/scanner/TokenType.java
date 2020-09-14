@@ -10,8 +10,8 @@ public enum TokenType {
   IS               ("TTTIS"),
   ARRAYS           ("TARRS"),
   MAIN             ("TMAIN"),
-  BEGIN            ("TBEGN"),
-  END              ("TTEND"),
+  BEGIN            ("TBEGN", "'begin'"),
+  END              ("TTEND", "'end'"),
   ARRAY            ("TARAY"),
   OF               ("TTTOF"),
   FUNC             ("TFUNC"),
@@ -38,8 +38,8 @@ public enum TokenType {
 
   // Operators and delimiters
   COMMA            ("TCOMA"),
-  LEFT_BRACKET     ("TLBRK"),
-  RIGHT_BRACKET    ("TRBRK"),
+  LEFT_BRACKET     ("TLBRK", "'['"),
+  RIGHT_BRACKET    ("TRBRK", "']'"),
   LEFT_PAREN       ("TLPAR"),
   RIGHT_PAREN      ("TRPAR"),
   EQUALS           ("TEQUL"),
@@ -65,20 +65,34 @@ public enum TokenType {
   DOT              ("TDOTT"),
 
   // Tokens that need tuple values
-  IDENTIFIER       ("TIDEN"),
-  INTEGER_LITERAL  ("TILIT"),
-  FLOAT_LITERAL    ("TFLIT"),
-  STRING_LITERAL   ("TSTRG"),
+  IDENTIFIER       ("TIDEN", "identifier"),
+  INTEGER_LITERAL  ("TILIT", "integer"),
+  FLOAT_LITERAL    ("TFLIT", "float"),
+  STRING_LITERAL   ("TSTRG", "string"),
   UNDEFINED        ("TUNDF");
 
   private final String token;
+  private final String humanReadable;
 
   TokenType(String token) {
+    this(token, null);
+  }
+
+  TokenType(String token, String humanReadable) {
     this.token = token;
+    this.humanReadable = humanReadable;
   }
 
   @Override
   public String toString() {
     return this.token;
+  }
+
+  public String getHumanReadable() {
+    if (humanReadable == null) {
+      return toString();
+    }
+
+    return humanReadable;
   }
 }

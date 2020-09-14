@@ -67,6 +67,9 @@ public class Node {
   }
 
   public void setNextChild(Node child) {
+    // Do not continue if setting null
+    if (child == null) return;
+
     if (left == null) {
       this.setLeftChild(child);
     } else {

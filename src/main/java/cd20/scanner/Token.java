@@ -42,6 +42,14 @@ public class Token {
     return out;
   }
 
+  public String getHumanReadable() {
+    if (lexeme == null) {
+      return type.getHumanReadable();
+    }
+
+    return "'" + lexeme + "'";
+  }
+
   public TokenType getType() {
     return this.type;
   }

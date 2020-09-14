@@ -1,5 +1,16 @@
 CD20 exhaustiveSample
 
+/-- Comments must be supported
 constants
-  cold = true,
-  name = "Sean"
+  temperature = 31.5
+
+types
+  Dog is
+    isFluffy : bool,
+    age : int,
+    old : bool
+  end
+
+  doggos is array [10] of Dog
+
+main

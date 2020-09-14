@@ -6,7 +6,6 @@
 <initlist> := <init><optinit>
  <optinit> := , <initlist>
             | ε
-============== DONE ==================
     <init> := <id> = <expr>
 
     <types> := types <typelist>
@@ -19,6 +18,7 @@
    <fields> := <sdecl><optfields>
 <optfields> := , <fields>
              | ε
+============== DONE ==================
 
     <arrays> := arrays <arrdecls>
               | ε
