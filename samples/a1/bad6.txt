@@ -1,0 +1,17 @@
+
+/-- invalid strings
+"this string wraps around a line so 
+should not be right"
+
+
+"The quick brown fox jumps over the lazy dog."
+"This is our commenting glyph /-- which is in a string lit"
+"                                                       "		/-- Blank String
+"I wish I was a cowboy"
+
+
+Dan.COMP3290.newcastle,
+[COMP]
+(hero)
+(100+47)
+[3.14159 * 11 = x]

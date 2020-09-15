@@ -1,0 +1,7 @@
+/-- Valid ID's
+Dan
+how Now bROWN COW
+sh3 se11s se4 she1l5 by thE s34 sh0re
+
+/-- Bonus : check if the int is within the limits
+1234567890123456789012345678901234567890123456789012345678901234567890

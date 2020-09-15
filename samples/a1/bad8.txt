@@ -1,0 +1,15 @@
+/-- Challenges
+123.abc				/-- TINTG 123   TDOTT TSTRG "abc"
+123.345.789			/-- TREAL 123.456     TDOTT TINTG 789
+123.4bc
+123,456.789
+123.O
+192.168.12.222 
+-22
+-0.123456
+Dan.COMP3290.newcastle,
+[COMP]
+(hero)
+(100+47)
+[3.14159 * 11 = x]
+<== %== *=== %/- "asdlkfj@"

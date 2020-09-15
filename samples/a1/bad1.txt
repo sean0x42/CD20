@@ -1,0 +1,16 @@
+0
+1.23456
+0.0
+0.000
+1
+147
+3.14159
+123.456789
+
+"The quick brown fox jumps over the lazy dog."
+"This is our commenting glyph /-- which is in a string lit"
+"                                                       "		/-- Blank String
+			45
+"I wish I was a cowboy"
+
+/-- test

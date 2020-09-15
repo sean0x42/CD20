@@ -1,0 +1,28 @@
+/-- Challenges
+123.abc				/-- TILIT 123   TDOTT TIDNT abc
+123.345.789			/-- TFLIT 123.345     TDOTT TILIT 789
+123.4bc				/-- TFLIT 123.4 TIDNT bc
+123,456.789			/-- TILIT 123   TCOMA TFLIT 456.789
+123.0				/-- TFLIT 123.0
+123.O				/-- TILIT 123	TDOTT TILIT 0
+192.168.12.222 		/-- TFLIT 192.168     TDOTT TFLIT 12.222
+-22					/-- TMINS TILIT 22 
+-0.123456			/-- TMINS TFLIT 0.123456
+Dan.COMP3290.newcastle,
+[COMP]
+(hero)
+(100+47)
+[3.14159 * 11 = x]
+<== %== *=== %/- "asdlkfj@"
+!!= =-= (/-=) >=.
+"String #@??\# Boo" 
+"#@??\# String "
+"#@??\#" 
+
+
+
+
+TILIT 123   TDOTT TIDNT abc   TFLIT 123.345     TDOTT TILIT 789
+TFLIT 123.4 TIDNT bc    TILIT 123   TCOMA TFLIT 456.789     TFLIT 123.0 
+TILIT 123	TDOTT TILIT 0     TFLIT 192.168     TDOTT TFLIT 12.222
+TMINS TILIT 22    TMINS TFLIT 0.123456

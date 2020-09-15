@@ -1,0 +1,18 @@
+/-- Invalid characters
+@ # ! ~ ` ?@@#  ?@$@#
+?@/@#
+?@!-$$@#   
+?@!=$$@#  
+
+
+/-- invalid strings
+"this string wraps around a line so 
+should not be right"
+
+
+/-- bad comments
+
+/- comment
+
+
+/-- file terminates with a comment

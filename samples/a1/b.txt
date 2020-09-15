@@ -1,0 +1,29 @@
+/-- COMP3290 Scanner Test File
+
+
+/-- Keywords - all valid
+CD20 CONSTANTS TYPES IS ARRAYS MAIN BEGIN END ARRAY OF FUNC VOID CONST INT REAL BOOL FOR REPEAT UNTIL IF ELSE INPUT PRINT PRINTLN RETURN NOT AND OR XOR TRUE FALSE END
+cd20 constants types is arrays main begin end array of func void const int real bool for repeat until if else input print println return not and or xor true false end
+Cd20 ConsTants Types Is Arrays MaiN Begin End Array Of Func Void Const Int Real Bool For Repeat unTil If Else Input Print PrintLn Return NoT And Or XOr True False eNd
+
+
+/-- Valid Delimiters
+; [ ] , ( ) = + - * / % ^ < > : . >= == += -= *= /=
+
+
+/-- Valid Literals
+0
+0.0
+0.000
+1
+147
+3.14159
+123.456789
+
+"The quick brown fox jumps over the lazy dog."
+"This is our commenting glyph /-- which is in a string lit"
+"                                                       "		/-- Blank String
+"I wish I was a cowboy"
+
+
+/-- at end of file

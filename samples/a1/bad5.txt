@@ -1,0 +1,3 @@
+/-- Invalid challenges
+123.4@5.789			/-- two valid TREAL and a TUNDF @
+Energi$ed
