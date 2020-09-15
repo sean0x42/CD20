@@ -13,4 +13,4 @@
 13 | 
 14 |   doggos is array [10] of Dog
 15 | 
-16 | main
+16 | func x(

@@ -13,4 +13,6 @@ types
 
   doggos is array [10] of Dog
 
+func x(): void
+
 main

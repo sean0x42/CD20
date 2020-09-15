@@ -12,6 +12,7 @@ public class Node {
   private final String value;
 
   private Node left = null;
+  private Node centre = null;
   private Node right = null;
 
   public Node(NodeType type) {
@@ -58,6 +59,14 @@ public class Node {
     this.left = left;
   }
 
+  public Node getCentreChild() {
+    return centre;
+  }
+
+  public void setCentreChild(Node centre) {
+    this.centre = centre;
+  }
+
   public Node getRightChild() {
     return right;
   }
@@ -72,6 +81,8 @@ public class Node {
 
     if (left == null) {
       this.setLeftChild(child);
+    } else if (centre == null) {
+      this.setCentreChild(child);
     } else {
       this.setRightChild(child);
     }

@@ -18,7 +18,6 @@
    <fields> := <sdecl><optfields>
 <optfields> := , <fields>
              | ε
-============== DONE ==================
 
     <arrays> := arrays <arrdecls>
               | ε
@@ -65,7 +64,8 @@
            | <callstat>
            | <returnstat>
 <forstat> := for (<asgnlist>; <bool>) <stats> end
-<repstat> := repeat (<asgnlist>) stats until <bool>
+<repstat> := repeat (<asgnlist>) <stats> until <bool>
+============== DONE ==================
 
    <asgnlist> := <asgnstat><optasgnstat>
 <optasgnstat> := , <asgnlist>
