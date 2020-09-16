@@ -1,16 +1,3 @@
- 1 | CD20 exhaustiveSample
- 2 | 
- 3 | /-- Comments must be supported
- 4 | constants
- 5 |   temperature = 31.5
- 6 | 
- 7 | types
- 8 |   Dog is
- 9 |     isFluffy : bool,
-10 |     age : int,
-11 |     old : bool
-12 |   end
-13 | 
-14 |   doggos is array [10] of Dog
-15 | 
-16 | func x(
+1 | is
+    ^
+    Error: Expected CD20 but found 'is' (1:1)

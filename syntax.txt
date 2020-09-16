@@ -65,7 +65,6 @@
            | <returnstat>
 <forstat> := for (<asgnlist>; <bool>) <stats> end
 <repstat> := repeat (<asgnlist>) <stats> until <bool>
-============== DONE ==================
 
    <asgnlist> := <asgnstat><optasgnstat>
 <optasgnstat> := , <asgnlist>
@@ -106,7 +105,7 @@
            | ε
 
  <bool> := <rel><bool'>
-<bool'> := <logop><rel><bool'>
+<bool'> := <logop><bool>
          | ε
 
      <rel> := <optnot><expr><optrelop>
@@ -125,6 +124,7 @@
          | >=
          | <=
          | <
+============== DONE ==================
 
  <expr> := <term><expr'>
 <expr'> := + <term><expr'>

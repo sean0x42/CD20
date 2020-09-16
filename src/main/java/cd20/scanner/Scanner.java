@@ -304,7 +304,7 @@ public class Scanner {
           return TokenType.EQUALS_EQUALS;
         }
 
-        return TokenType.EQUALS;
+        return TokenType.ASSIGN;
       case '+':
         if (reader.peek() == '=') {
           consumeChar();

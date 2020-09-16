@@ -39,7 +39,9 @@ public class Parser {
     try {
       return parseProgram();
     } catch (UnexpectedTokenException exception) {
-      output.addAnnotation(new Annotation(exception.getFoundToken(), exception.getMessage()));
+      output.addAnnotation(
+        new Annotation(exception.getFoundToken(), exception.getMessage())
+      );
     }
 
     return null;
@@ -91,6 +93,7 @@ public class Parser {
 
   /**
    * Parses the a CD20 program node
+   * @return A {@link Node} of type PROGRAM
    */
   private Node parseProgram() throws IOException, UnexpectedTokenException {
     symbolTable.pushScope("global");
@@ -110,6 +113,7 @@ public class Parser {
 
   /**
    * Parses a globals node
+   * @return A {@link Node} of type GLOBALS
    */
   private Node parseGlobals() throws IOException, UnexpectedTokenException {
     Node globals = new Node(NodeType.GLOBALS);
@@ -124,6 +128,7 @@ public class Parser {
 
   /**
    * Parse a functions node.
+   * @return A {@link Node} of type FUNCTIONS or null
    */
   private Node parseFunctions() throws IOException, UnexpectedTokenException {
     // Only continue if a function is given
@@ -138,6 +143,7 @@ public class Parser {
 
   /**
    * Parse a function.
+   * @return A {@link Node} of type FUNC
    */
   private Node parseFunction() throws IOException, UnexpectedTokenException {
     // Handle func <id>
@@ -164,6 +170,7 @@ public class Parser {
 
   /**
    * Parse a function return type.
+   * @return A {@link Node} of type SType or null (for void functions).
    */
   private Node parseReturnType() throws IOException, UnexpectedTokenException {
     // Handle void
@@ -177,6 +184,8 @@ public class Parser {
 
   /**
    * Parse a function body.
+   * May include a node of locals and a node of statements.
+   * @return A list of {@link Node}s that comprise a function's body.
    */
   private List<Node> parseFunctionBody() throws IOException, UnexpectedTokenException {
     List<Node> nodes = new ArrayList<>();
@@ -228,6 +237,7 @@ public class Parser {
    */
   private Node parseOptDeclarationList() throws UnexpectedTokenException, IOException {
     if (!isNext(TokenType.COMMA)) return null;
+    consume();
     return parseDeclarationList();
   }
 
@@ -263,8 +273,8 @@ public class Parser {
    * Parse optionally more parameters.
    */
   private Node parseOptParams() throws UnexpectedTokenException, IOException {
-    // Handle , <params>
     if (!isNext(TokenType.COMMA)) return null;
+    consume();
     return parseParams();
   }
 
@@ -306,9 +316,37 @@ public class Parser {
   }
 
   /**
+   * Handles a list of sdecl?
+   */
+  private Node parseSList() throws IOException, UnexpectedTokenException {
+    if (isNext(TokenType.BEGIN)) return null;
+
+    Node decl = parseDeclaration();
+    Node chain = parseOptSDecl();
+
+    if (chain != null) {
+      Node node = new Node(NodeType.SDECL_LIST);
+      node.setLeftChild(decl);
+      node.setRightChild(chain);
+      return node;
+    }
+
+    return decl;
+  }
+
+  /**
+   * Parse optionally more sdecls.
+   */
+  private Node parseOptSDecl() throws IOException, UnexpectedTokenException {
+    if (!isNext(TokenType.COMMA)) return null;
+    consume();
+    return parseSList();
+  }
+
+  /**
    * Parse a collection of statements.
    */
-  private Node parseStatements() {
+  private Node parseStatements() throws IOException, UnexpectedTokenException {
     // First, handle simpler <strstat>
     Node statement = parseBlockStatement();
 
@@ -332,7 +370,18 @@ public class Parser {
   }
 
   /**
+   * Parses optionally more statements.
+   * @return A {@link Node} containing statements or null.
+   */
+  private Node parseOptStatements() throws IOException, UnexpectedTokenException {
+    // TODO Find a better method for determining when statements end
+    if (isNext(TokenType.END)) return null;
+    return parseStatements();
+  }
+
+  /**
    * Parse a block statement.
+   * @return A {@link Node} containing a block statement.
    */
   private Node parseBlockStatement() throws IOException, UnexpectedTokenException {
     switch (nextToken.getType()) {
@@ -347,6 +396,7 @@ public class Parser {
 
   /**
    * Parse a for statement.
+   * @return A {@link Node} containing a for statement.
    */
   private Node parseForStatement() throws IOException, UnexpectedTokenException {
     // Handle for (
@@ -370,11 +420,73 @@ public class Parser {
   }
 
   /**
+   * Parse a list of assignments.
+   */
+  private Node parseAssignmentList() throws IOException, UnexpectedTokenException {
+    Node assignment = parseAssignment();
+    Node chain = parseOptAssignmentList();
+
+    if (chain != null) {
+      Node node = new Node(NodeType.ASSIGN_LIST);
+      node.setLeftChild(assignment);
+      node.setRightChild(chain);
+      return node;
+    }
+
+    return assignment;
+  }
+
+  /**
+   * Parse optionally more assignments.
+   */
+  private Node parseOptAssignmentList() throws IOException, UnexpectedTokenException {
+    if (!isNext(TokenType.COMMA)) return null;
+    consume();
+    return parseAssignmentList();
+  }
+
+  /**
    * Parse an if statement.
    */
   private Node parseIfStatement() throws IOException, UnexpectedTokenException {
+    // Handle if
     expectAndConsume(TokenType.IF);
-    
+
+    // Handle <bool>)
+    expectAndConsume(TokenType.LEFT_PAREN);
+    Node bool = parseBool();
+    expectAndConsume(TokenType.RIGHT_PAREN);
+
+    // Handle <stats>
+    Node statements = parseStatements();
+
+    // Handle else <stats> end
+    Node elseStatements = parseOptElseStatement();
+    expectAndConsume(TokenType.END);
+
+    // Create node
+    Node node;
+    if (elseStatements == null) {
+      node = new Node(NodeType.IF);
+    } else {
+      node = new Node(NodeType.IF_ELSE);
+    }
+
+    node.setNextChild(bool);
+    node.setNextChild(statements);
+    node.setNextChild(elseStatements);
+
+    return node;
+  }
+
+  /**
+   * Parse an optional else statement.
+   * @return A {@link Node} containing statements from an else block or null.
+   */
+  private Node parseOptElseStatement() throws IOException, UnexpectedTokenException {
+    if (!isNext(TokenType.END)) return null;
+    expectAndConsume(TokenType.ELSE);
+    return parseStatements();
   }
 
   /**
@@ -393,7 +505,7 @@ public class Parser {
       case IDENTIFIER:
         return parseCallStatement();
       default:
-        return parseAssignmentStatement();
+        return parseAssignment();
     }
   }
 
@@ -421,12 +533,90 @@ public class Parser {
   /**
    * Parse a function call.
    */
-  private Node parseCallStatement() {}
+  private Node parseCallStatement() throws IOException, UnexpectedTokenException {
+    Node node = new Node(NodeType.FUNCTION_CALL, expectIdentifier());
+
+    // Handle (<optparams>)
+    expectAndConsume(TokenType.LEFT_PAREN);
+    node.setNextChild(parseOptCallParams());
+    expectAndConsume(TokenType.RIGHT_PAREN);
+
+    return node;
+  }
+
+  /**
+   * Parse an optional list of parameters.
+   */
+  private Node parseOptCallParams() throws IOException, UnexpectedTokenException {
+    if (isNext(TokenType.RIGHT_PAREN)) return null;
+    return parseExpressionList();
+  }
+
+  /**
+   * Parse a list of expressions.
+   */
+  private Node parseExpressionList() throws IOException, UnexpectedTokenException {
+    Node bool = parseBool();
+    Node chain = parseOptExpressionList();
+
+    if (chain != null) {
+      Node node = new Node(NodeType.EXPRESSION_LIST);
+      node.setLeftChild(bool);
+      node.setRightChild(chain);
+      return node;
+    }
+
+    return bool;
+  }
+
+  /**
+   * Parse optionally more bools.
+   */
+  private Node parseOptExpressionList() throws IOException, UnexpectedTokenException {
+    if (!isNext(TokenType.COMMA)) return null;
+    consume();
+    return parseExpressionList();
+  }
 
   /**
    * Parse an assignment statement.
    */
-  private Node parseAssignmentStatement() {}
+  private Node parseAssignment() throws UnexpectedTokenException, IOException {
+    // Handle <var><asgnop>
+    Node varNode = parseVar();
+    Node asignOp = parseAssignmentOp();
+    asignOp.setLeftChild(varNode);
+
+    // Handle <bool>
+    asignOp.setRightChild(parseBool());
+
+    return asignOp;
+  }
+
+  /**
+   * Parse an assignment operator
+   */
+  private Node parseAssignmentOp() throws IOException, UnexpectedTokenException {
+    switch (nextToken.getType()) {
+      case ASSIGN:
+        consume();
+        return new Node(NodeType.ASSIGN);
+      case INCREMENT:
+        consume();
+        return new Node(NodeType.INCREMENT);
+      case DECREMENT:
+        consume();
+        return new Node(NodeType.DECREMENT);
+      case STAR_EQUALS:
+        consume();
+        return new Node(NodeType.STAR_EQUALS);
+      case DIVIDE_EQUALS:
+        consume();
+        return new Node(NodeType.DIVIDE_EQUALS);
+      default:
+        throw new UnexpectedTokenException("an assignment operator", nextToken);
+    }
+  }
 
   /**
    * Parse a repeat statement.
@@ -527,6 +717,7 @@ public class Parser {
    */
   private Node parseOptPrintList() throws IOException, UnexpectedTokenException {
     if (!isNext(TokenType.COMMA)) return null;
+    consume();
     return parsePrintList();
   }
 
@@ -566,6 +757,7 @@ public class Parser {
    */
   private Node parseOptVar() throws UnexpectedTokenException, IOException {
     if (!isNext(TokenType.COMMA)) return null;
+    consume();
     return parseVarList();
   }
 
@@ -573,10 +765,7 @@ public class Parser {
    * Parse a possible collection of constants.
    */
   private Node parseConstants() throws IOException, UnexpectedTokenException {
-    if (!isNext(TokenType.CONSTANTS)) {
-      return null;
-    }
-
+    if (!isNext(TokenType.CONSTANTS)) return null;
     consume();
     return parseInitList();
   }
@@ -605,7 +794,7 @@ public class Parser {
 
     // Move on
     consume();
-    expectAndConsume(TokenType.EQUALS);
+    expectAndConsume(TokenType.ASSIGN);
 
     // Handle expression
     node.setNextChild(parseExpression());
@@ -619,11 +808,7 @@ public class Parser {
    *            | ε
    */
   private Node parseOptInit() throws IOException, UnexpectedTokenException {
-    // Only continue if given a comma
-    if (!isNext(TokenType.COMMA)) {
-      return null;
-    }
-
+    if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseInitList();
   }
@@ -733,11 +918,7 @@ public class Parser {
    * Parse optionally more declarations.
    */
   private Node parseOptFields() throws UnexpectedTokenException, IOException {
-    // Only continue if given comma
-    if (!isNext(TokenType.COMMA)) {
-      return null;
-    }
-
+    if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseFields();
   }
@@ -746,12 +927,8 @@ public class Parser {
    * Parse a struct declaration.
    */
   private Node parseDeclaration() throws UnexpectedTokenException, IOException {
-    // Handle ident
-    expect(TokenType.IDENTIFIER);
-    Node node = new Node(NodeType.STRUCT_FIELD, nextToken.getLexeme());
-    consume();
-
-    // Handle :
+    // Handle ident :
+    Node node = new Node(NodeType.SDECL, expectIdentifier());
     expectAndConsume(TokenType.COLON);
 
     // Handle <stype>
@@ -812,6 +989,7 @@ public class Parser {
   private Node parseOptArrDecls() throws UnexpectedTokenException, IOException {
     // Only continue if given comma
     if (!isNext(TokenType.COMMA)) return null;
+    consume();
     return parseArrayDecls();
   }
 
@@ -1004,8 +1182,137 @@ public class Parser {
     return parseVar();
   }
 
-  private Node parseBool() {
-    return null;
+  /**
+   * Parse a boolean.
+   */
+  private Node parseBool() throws IOException, UnexpectedTokenException {
+    Node rel = parseRel();
+    Node[] chain = parseOptBool();
+
+    if (chain != null) {
+      Node node = new Node(NodeType.BOOLEAN);
+      node.setLeftChild(rel);
+      node.setCentreChild(chain[0]);
+      node.setRightChild(chain[1]);
+      return node;
+    }
+
+    return rel;
+  }
+
+  /**
+   * Parse more boolean
+   */
+  private Node[] parseOptBool() throws IOException, UnexpectedTokenException {
+    // Attempt to parse logical operator
+    Node logicalOp = parseLogicalOp();
+    if (logicalOp == null) return null;
+
+    Node rel = parseRel();
+    Node chain = parseBool();
+    Node[] nodes = { rel, chain };
+    return nodes;
+  }
+
+  /**
+   * Parse a logicl operator.
+   * @return A logical op {@link Node} or null.
+   */
+  private Node parseLogicalOp() throws IOException {
+    switch (nextToken.getType()) {
+      case AND:
+        consume();
+        return new Node(NodeType.AND);
+      case OR:
+        consume();
+        return new Node(NodeType.OR);
+      case XOR:
+        consume();
+        return new Node(NodeType.XOR);
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Parse relational statement.
+   */
+  private Node parseRel() throws IOException, UnexpectedTokenException {
+    Node not = parseOptNot();
+    Node expression = parseExpression();
+
+    // Handle <optrelop>
+    Node relOp = parseOptRelOp();
+    if (relOp != null) {
+      relOp.setLeftChild(expression);
+
+      // Handle possible not
+      if (not != null) {
+        not.setNextChild(relOp);
+        return not;
+      }
+
+      return relOp;
+    }
+
+    // Handle possible not
+    if (not != null) {
+      not.setNextChild(expression);
+      return not;
+    }
+
+    return expression;
+  }
+
+  /**
+   * Parse an optional not node.
+   */
+  private Node parseOptNot() throws IOException {
+    if (!isNext(TokenType.NOT)) return null;
+    consume();
+    return new Node(NodeType.NOT);
+  }
+
+  /**
+   * Parse an optional relational operator.
+   */
+  private Node parseOptRelOp() throws IOException, UnexpectedTokenException {
+    // See if a <relop> is provided
+    Node relop = parseRelOp();
+    if (relop == null) return null;
+
+    // Handle <expr>
+    relop.setRightChild(parseExpression());
+    return relop;
+  }
+
+  /**
+   * Parse a relative operator.
+   * @return A relative operator {@link Node} or null.
+   */
+  private Node parseRelOp() throws IOException {
+    switch (nextToken.getType()) {
+      case EQUALS_EQUALS:
+        consume();
+        return new Node(NodeType.EQUAL);
+      case NOT_EQUAL:
+        consume();
+        return new Node(NodeType.NOT_EQUAL);
+      case GREATER:
+        consume();
+        return new Node(NodeType.GREATER);
+      case GREATER_OR_EQUAL:
+        consume();
+        return new Node(NodeType.GREATER_OR_EQUAL);
+      case LESS:
+        consume();
+        return new Node(NodeType.LESS);
+      case LESS_OR_EQUAL:
+        consume();
+        return new Node(NodeType.LESS_OR_EQUAL);
+      default:
+        return null;
+    }
   }
 
   /**
