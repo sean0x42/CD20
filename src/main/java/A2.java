@@ -1,19 +1,16 @@
-package cd20;
-
-import java.io.IOException;
-import java.io.Reader;
-
 import cd20.output.OutputController;
 import cd20.parser.Node;
 import cd20.parser.Parser;
 import cd20.scanner.Scanner;
 
-public class App {
+import java.io.*;
+
+public class A2 {
   private final Parser parser;
   private final Scanner scanner;
   private final OutputController outputController = new OutputController();
 
-  public App(Reader reader) {
+  public A2(Reader reader) {
     this.scanner = new Scanner(reader, outputController);
     this.parser = new Parser(scanner, outputController);
   }
@@ -43,8 +40,38 @@ public class App {
       printNode(current.getLeftChild());
     }
 
+    if (current.getCentreChild() != null) {
+      printNode(current.getCentreChild());
+    }
+
     if (current.getRightChild() != null) {
       printNode(current.getRightChild());
+    }
+  }
+
+  public static void main(String[] args) {
+    Reader reader;
+
+    if (args.length < 1) {
+      // Read from stdin
+      reader = new InputStreamReader(System.in);
+    } else {
+      // Read from file at path
+      File file = new File(args[0]);
+
+      try {
+        reader = new FileReader(file);
+      } catch (FileNotFoundException exception) {
+        System.err.println("File not found: '" + args[0] + "'");
+        return;
+      }
+    }
+
+    // Attempt to run app
+    try {
+      new A2(reader).run();
+    } catch (IOException exception) {
+      exception.printStackTrace();
     }
   }
 }

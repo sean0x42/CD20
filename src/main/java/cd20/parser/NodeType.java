@@ -67,7 +67,10 @@ public enum NodeType {
   FALSE                 ("NFALSE"),
   FUNC_CALL             ("NFCALL"),
   PRINT_LIST            ("NPRLST"),
-  STRING                ("NSTRG");
+  STRING                ("NSTRG"),
+
+  // Made up node type
+  DECLARATION_TYPE      ("NDTYP");
 
   private final String node;
 

@@ -185,7 +185,7 @@ public class Scanner {
    */
   private Character consumeChar() throws IOException {
     // Previous char was a newline, drop to the next line
-    if (line == 0 || character == '\n') {
+    if (line == 0 || (character != null && character == '\n')) {
       line++;
       column = 0;
     }
@@ -243,13 +243,14 @@ public class Scanner {
     do {
       consumeChar();
     } while (
-      reader.peek() != null &&
+      reader.peek() != null && reader.peek(2) != null && reader.peek(3) != null &&
       !(reader.peek(1) == '*' && reader.peek(2) == '*' && reader.peek(3) == '/')
     );
 
-    consumeChar();
-    consumeChar();
-    consumeChar();
+    for (int i = 0; i < 3; i++) {
+      if (reader.peek() == null) break;
+      consumeChar();
+    }
   }
 
   /**

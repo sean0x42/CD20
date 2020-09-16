@@ -1,3 +1,8 @@
-1 | is
+1 | CD20 s
+2 | main
+3 | begin
+4 |     /--print "Hello, world!";
+5 | end
     ^
-    Error: Expected CD20 but found 'is' (1:1)
+    Syntax error: At least one statement is required here.
+    Instead found 'end'. (5:1)

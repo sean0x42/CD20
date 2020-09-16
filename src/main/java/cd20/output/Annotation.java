@@ -38,9 +38,17 @@ public class Annotation {
     String indent = StringUtils.repeat(' ', lineNumberWidth + column + 2);
 
     // Generate actual annotation
-    // TODO clean up
     joiner.add(indent + StringUtils.repeat('^', length));
-    joiner.add(indent + annotation + " (" + line + ":" + column + ")");
+
+    // Split at newlines and render each line
+    String[] strs = annotation.split("\n");
+    for (int idx = 0; idx < strs.length; idx++) {
+      if (idx == strs.length - 1) {
+        joiner.add(indent + strs[idx] + " (" + line + ":" + column + ")")  ;
+      } else {
+        joiner.add(indent + strs[idx]);
+      }
+    }
 
     return joiner.toString();
   }
