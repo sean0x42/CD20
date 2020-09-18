@@ -140,6 +140,11 @@ public class Scanner {
 
     // Consume until delimiter
     while (reader.peek() == '.' || Character.isDigit(reader.peek())) {
+      // Exit early if a second '.' is found within one real.
+      if (reader.peek() == '.' && isReal) {
+        return new Token(TokenType.REAL, string, line, column);
+      } 
+
       Character ch = consumeChar();
       string += ch;
 

@@ -14,5 +14,22 @@ types
   doggos is array [10] of Dog
 
 func x(): void
+begin
+  print "Test";
+end
 
 main
+  blue : bool
+begin
+  println "Hello world!";
+
+  x = 3.4.5;
+
+  if (blue)
+    println "Blue!";
+  else
+    println "Not blue!";
+  end
+end
+
+CD20 exhaustiveSample

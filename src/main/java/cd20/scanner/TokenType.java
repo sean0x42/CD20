@@ -23,8 +23,8 @@ public enum TokenType {
   FOR              ("TTFOR"),
   REPEAT           ("TREPT"),
   UNTIL            ("TUNTL"),
-  IF               ("TIFTH"),
-  ELSE             ("TELSE"),
+  IF               ("TIFTH", "'if'"),
+  ELSE             ("TELSE", "'else'"),
   INPUT            ("TINPT"),
   PRINT            ("TPRIN"),
   PRINTLN          ("TPRLN"),
@@ -69,7 +69,7 @@ public enum TokenType {
   INTEGER_LITERAL  ("TILIT", "integer"),
   FLOAT_LITERAL    ("TFLIT", "float"),
   STRING_LITERAL   ("TSTRG", "string"),
-  UNDEFINED        ("TUNDF");
+  UNDEFINED        ("TUNDF", "unknown token");
 
   private final String token;
   private final String humanReadable;

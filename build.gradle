@@ -23,12 +23,11 @@ repositories {
 dependencies {
   // Use JUnit test framework
   testImplementation 'junit:junit:4.13'
-  testCompile 'org.mockito:mockito-core:2.+'
 }
 
 application {
   // Define the main class for the application.
-  mainClassName = 'A1'
+  mainClassName = 'A2'
 }
 
 java {

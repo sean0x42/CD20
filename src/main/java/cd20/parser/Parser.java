@@ -38,13 +38,9 @@ public class Parser {
 
     try {
       return parseProgram();
-    } catch (UnexpectedTokenException exception) {
-      output.addAnnotation(
-        new Annotation(exception.getFoundToken(), exception.getMessage())
-      );
     } catch (SyntaxException exception) {
       output.addAnnotation(
-          new Annotation(exception.getToken(), exception.getMessage())
+        new Annotation(exception.getToken(), exception.getMessage())
       );
     }
 
@@ -93,13 +89,14 @@ public class Parser {
    */
   private void consume() throws IOException {
     nextToken = scanner.nextToken();
+    System.out.println(String.format("[DEBUG] Found %s", nextToken));
   }
 
   /**
    * Parses the a CD20 program node
    * @return A {@link Node} of type PROGRAM
    */
-  private Node parseProgram() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseProgram() throws IOException, SyntaxException {
     symbolTable.pushScope("global");
 
     // Handle CD20 <id>
@@ -134,7 +131,7 @@ public class Parser {
    * Parse a functions node.
    * @return A {@link Node} of type FUNCTIONS or null
    */
-  private Node parseFunctions() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseFunctions() throws IOException, SyntaxException {
     // Only continue if a function is given
     if (!isNext(TokenType.FUNC)) return null;
 
@@ -149,7 +146,7 @@ public class Parser {
    * Parse a function.
    * @return A {@link Node} of type FUNC
    */
-  private Node parseFunction() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseFunction() throws IOException, SyntaxException {
     // Handle func <id>
     expectAndConsume(TokenType.FUNC);
     String lexeme = expectIdentifier();
@@ -191,7 +188,7 @@ public class Parser {
    * May include a node of locals and a node of statements.
    * @return A list of {@link Node}s that comprise a function's body.
    */
-  private List<Node> parseFunctionBody() throws IOException, UnexpectedTokenException, SyntaxException {
+  private List<Node> parseFunctionBody() throws IOException, SyntaxException {
     List<Node> nodes = new ArrayList<>();
 
     // Handle <locals>
@@ -297,7 +294,7 @@ public class Parser {
   /**
    * Parse main program
    */
-  private Node parseMain() throws UnexpectedTokenException, IOException, SyntaxException {
+  private Node parseMain() throws IOException, SyntaxException {
     // Handle main
     symbolTable.pushScope("main");
     expectAndConsume(TokenType.MAIN);
@@ -350,11 +347,13 @@ public class Parser {
   /**
    * Parse a collection of statements.
    */
-  private Node parseStatements() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseStatements() throws IOException, SyntaxException {
+    // If we detect an end here, we can throw a more meaningful error message
+    // about how at least one statement is required.
     if (isNext(TokenType.END)) {
       throw new SyntaxException(
-          String.format("At least one statement is required here.\nInstead found %s.", nextToken.getType().getHumanReadable()),
-          nextToken
+        "At least one statement is required here.\nBlock ends too early.",
+        nextToken
       );
     }
 
@@ -363,12 +362,12 @@ public class Parser {
 
     // Handle <stat> if not <strstat>
     if (statement == null) {
-      statement = parseStatement();
+      statement = parseInlineStatement();
       expectAndConsume(TokenType.SEMI_COLON);
     }
 
     // Handle <optstats>
-    Node chain = parseOptStatements();
+    Node chain = parseOptionalStatements();
 
     if (chain != null) {
       Node node = new Node(NodeType.STATEMENTS);
@@ -382,19 +381,22 @@ public class Parser {
 
   /**
    * Parses optionally more statements.
-   * @return A {@link Node} containing statements or null.
    */
-  private Node parseOptStatements() throws IOException, UnexpectedTokenException, SyntaxException {
-    // TODO Find a better method for determining when statements end
-    if (isNext(TokenType.END)) return null;
-    return parseStatements();
+  private Node parseOptionalStatements() throws IOException, SyntaxException {
+    switch (nextToken.getType()) {
+      case ELSE:
+      case END:
+        return null;
+      default:
+        return parseStatements();
+    }
   }
 
   /**
    * Parse a block statement.
    * @return A {@link Node} containing a block statement.
    */
-  private Node parseBlockStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseBlockStatement() throws IOException, SyntaxException {
     switch (nextToken.getType()) {
       case FOR:
         return parseForStatement();
@@ -409,7 +411,7 @@ public class Parser {
    * Parse a for statement.
    * @return A {@link Node} containing a for statement.
    */
-  private Node parseForStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseForStatement() throws IOException, SyntaxException {
     // Handle for (
     Node node = new Node(NodeType.FOR);
     expectAndConsume(TokenType.FOR);
@@ -459,7 +461,7 @@ public class Parser {
   /**
    * Parse an if statement.
    */
-  private Node parseIfStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseIfStatement() throws IOException, SyntaxException {
     // Handle if
     expectAndConsume(TokenType.IF);
 
@@ -472,7 +474,7 @@ public class Parser {
     Node statements = parseStatements();
 
     // Handle else <stats> end
-    Node elseStatements = parseOptElseStatement();
+    Node elseStatements = parseOptionalElse();
     expectAndConsume(TokenType.END);
 
     // Create node
@@ -491,19 +493,18 @@ public class Parser {
   }
 
   /**
-   * Parse an optional else statement.
-   * @return A {@link Node} containing statements from an else block or null.
+   * Parse an optional else statement within an if statement
    */
-  private Node parseOptElseStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseOptionalElse() throws IOException, SyntaxException {
     if (!isNext(TokenType.END)) return null;
     expectAndConsume(TokenType.ELSE);
     return parseStatements();
   }
 
   /**
-   * Parse a statement.
+   * Parse a simple inline statement
    */
-  private Node parseStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseInlineStatement() throws IOException, SyntaxException {
     switch (nextToken.getType()) {
       case REPEAT:
         return parseRepeatStatement();
@@ -513,10 +514,23 @@ public class Parser {
         return parseIoStatement();
       case RETURN:
         return parseReturnStatement();
-      case IDENTIFIER:
-        return parseCallStatement();
       default:
-        return parseAssignment();
+        return parseStatementPrime();
+    }
+  }
+
+  /**
+   * Parse call and assignment statements, which both begin with a common
+   * <ident>
+   */
+  private Node parseStatementPrime() throws SyntaxException, IOException {
+    String lexeme = expectIdentifier();
+
+    switch (nextToken.getType()) {
+      case LEFT_PAREN:
+        return parseFunctionCallStatement(lexeme);
+      default:
+        return parseAssignment(lexeme);
     }
   }
 
@@ -528,7 +542,7 @@ public class Parser {
     Node node = new Node(NodeType.RETURN);
     expectAndConsume(TokenType.RETURN);
 
-    node.setNextChild(parseOptReturn());
+    node.setNextChild(parseOptionalReturn());
 
     return node;
   }
@@ -536,18 +550,18 @@ public class Parser {
   /**
    * Parse an optional expression after a return statement.
    */
-  private Node parseOptReturn() throws IOException, UnexpectedTokenException {
+  private Node parseOptionalReturn() throws IOException, UnexpectedTokenException {
     if (isNext(TokenType.SEMI_COLON)) return null;
     return parseExpression();
   }
 
   /**
-   * Parse a function call.
+   * Parse a function call statement
    */
-  private Node parseCallStatement() throws IOException, UnexpectedTokenException {
-    Node node = new Node(NodeType.FUNCTION_CALL, expectIdentifier());
+  private Node parseFunctionCallStatement(String lexeme) throws IOException, SyntaxException {
+    Node node = new Node(NodeType.FUNCTION_CALL, lexeme);
 
-    // Handle (<optparams>)
+    // (<optparams>)
     expectAndConsume(TokenType.LEFT_PAREN);
     node.setNextChild(parseOptCallParams());
     expectAndConsume(TokenType.RIGHT_PAREN);
@@ -593,8 +607,16 @@ public class Parser {
    * Parse an assignment statement.
    */
   private Node parseAssignment() throws UnexpectedTokenException, IOException {
+    return parseAssignment(expectIdentifier());
+  }
+
+  /**
+   * Parse an assignment statement.
+   * @param lexeme Lexeme of the variable being assigned to.
+   */
+  private Node parseAssignment(String lexeme) throws UnexpectedTokenException, IOException {
     // Handle <var><asgnop>
-    Node varNode = parseVar();
+    Node varNode = parseVar(lexeme);
     Node asignOp = parseAssignmentOp();
     asignOp.setLeftChild(varNode);
 
@@ -632,7 +654,7 @@ public class Parser {
   /**
    * Parse a repeat statement.
    */
-  private Node parseRepeatStatement() throws IOException, UnexpectedTokenException, SyntaxException {
+  private Node parseRepeatStatement() throws IOException, SyntaxException {
     Node node = new Node(NodeType.REPEAT);
 
     // Handle repeat (
@@ -1332,9 +1354,14 @@ public class Parser {
    * Parse a variable
    */
   private Node parseVar() throws UnexpectedTokenException, IOException {
-    // Handle <ident>
-    String lexeme = expectIdentifier();
+    return parseVar(expectIdentifier());
+  }
 
+  /**
+   * Parse a variable
+   * @param lexeme Lexeme of the variable.
+   */
+  private Node parseVar(String lexeme) throws UnexpectedTokenException, IOException {
     // Handle array variable
     Node arrVar = parseArrayVar(nextToken.getLexeme());
     if (arrVar != null) {

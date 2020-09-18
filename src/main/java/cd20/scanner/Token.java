@@ -25,6 +25,8 @@ public class Token {
     String out = type.toString();
 
     if (lexeme != null) {
+      out += " ";
+
       if (type == TokenType.STRING_LITERAL) {
         out += "\"" + lexeme + "\"";
       } else {

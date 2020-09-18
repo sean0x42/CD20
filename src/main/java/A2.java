@@ -19,12 +19,14 @@ public class A2 {
    * Run the application
    */
   public void run() throws IOException {
+    // Parse
     Node rootNode = parser.parse();
 
+    // Output listing
     System.out.println(outputController.toString());
     outputController.writeToFile("listing.txt");
 
-    System.out.println();
+    // Print AST
     printNode(rootNode);
   }
 
