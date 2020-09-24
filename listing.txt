@@ -13,20 +13,41 @@
 13 | 
 14 |   doggos is array [10] of Dog
 15 | 
-16 | func x(): void
+16 | func x() void
+              ^
+              Warning: Expected ':'. Will try continuing anyway. (16:10)
 17 | begin
 18 |   print "Test";
 19 | end
 20 | 
 21 | main
-22 |   blue : bool
-23 | begin
-24 |   println "Hello world!";
-25 | 
-26 |   /-- x = 3.4.5;
-27 | 
-28 |   if (blue)
-29 |     println "Blue!";
-30 |   else
+22 |   blue bool,
+            ^
+            Warning: Expected ':'. Will try continuing anyway. (22:8)
+23 |   a : int
+24 | begin
+25 |   println "Hello world!"
+26 | 
+27 |   a = -0;
        ^
-       Syntax error: Expected 'end' but found 'else' (30:3)
+       Warning: Expected ';'. Will try continuing anyway. (27:3)
+28 |   a += 8 + 10;
+29 | 
+30 |   blue = -true;
+               ^^^^
+               Warning: Cannot have a negative 'true'.
+               Only integers and reals may be negative.
+               Minus will be ignored. (30:11)
+31 | 
+32 |   /-- x = 3.4.5;
+33 | 
+34 |   if (not blue or x() and 2 >= 5)
+35 |     println "Not blue!";
+36 |   else
+37 |     println "Blue!";
+38 |   end
+39 | 
+40 |   print x();
+41 | end
+42 | 
+43 | CD20 exhaustiveSample

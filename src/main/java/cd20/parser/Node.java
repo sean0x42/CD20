@@ -87,4 +87,8 @@ public class Node {
       this.setRightChild(child);
     }
   }
+
+  public boolean hasChildren() {
+    return left != null || centre != null || right != null;
+  }
 }

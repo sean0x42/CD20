@@ -31,9 +31,9 @@ begin
     if (not isValid)
       println "Invalid. Must be a number between 0 and 20.";
     end
-  until isValid
+  until isValid;
 
-  return num
+  return num;
 end
 
 /**

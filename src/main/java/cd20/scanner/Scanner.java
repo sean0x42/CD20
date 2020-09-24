@@ -41,7 +41,7 @@ public class Scanner {
 
     // Print lexical error on undefined token
     if (token.getType() == TokenType.UNDEFINED) {
-      Annotation annotation = new Annotation(token, "Error: Unknown token '" + token.getLexeme() + "'");
+      Annotation annotation = new Annotation("Error: Unknown token '" + token.getLexeme() + "'", token);
       outputController.addAnnotation(annotation);
     }
 
@@ -142,7 +142,7 @@ public class Scanner {
     while (reader.peek() == '.' || Character.isDigit(reader.peek())) {
       // Exit early if a second '.' is found within one real.
       if (reader.peek() == '.' && isReal) {
-        return new Token(TokenType.REAL, string, line, column);
+        return new Token(TokenType.FLOAT_LITERAL, string, line, column);
       } 
 
       Character ch = consumeChar();
@@ -154,7 +154,7 @@ public class Scanner {
     }
 
     if (isReal) {
-      return new Token(TokenType.REAL, string, line, column);
+      return new Token(TokenType.FLOAT_LITERAL, string, line, column);
     }
 
     return new Token(TokenType.INTEGER_LITERAL, string, line, column);

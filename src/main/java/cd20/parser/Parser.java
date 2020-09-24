@@ -6,6 +6,7 @@ import java.util.List;
 
 import cd20.output.Annotation;
 import cd20.output.OutputController;
+import cd20.output.WarningAnnotation;
 import cd20.scanner.Scanner;
 import cd20.scanner.Token;
 import cd20.scanner.TokenType;
@@ -40,11 +41,20 @@ public class Parser {
       return parseProgram();
     } catch (SyntaxException exception) {
       output.addAnnotation(
-        new Annotation(exception.getToken(), exception.getMessage())
+        new Annotation(exception.getMessage(), exception.getToken())
       );
     }
 
     return null;
+  }
+
+  /**
+   * Adds a warning to the output controller.
+   * @param message Warning message.
+   * @param token Token that caused warning.
+   */
+  private void warn(String message, Token token) {
+    output.addAnnotation(new WarningAnnotation(message, token));
   }
 
   /**
@@ -78,6 +88,23 @@ public class Parser {
   }
 
   /**
+   * Similar to #expectAndConsume, but if the token is not provided it will attempt to continue parsing.
+   * @param type Type to suggest.
+   */
+  private void expectAndConsumeOrInsert(TokenType type) throws IOException {
+    // Handle correct type
+    if (isNext(type)) {
+      consume();
+      return;
+    }
+
+    warn(
+      String.format("Expected %s. Will try continuing anyway.", type.getHumanReadable()),
+      nextToken
+    );
+  }
+
+  /**
    * Determine whether the next token is of the given {@link TokenType}.
    */
   private boolean isNext(TokenType type) {
@@ -89,7 +116,6 @@ public class Parser {
    */
   private void consume() throws IOException {
     nextToken = scanner.nextToken();
-    System.out.println(String.format("[DEBUG] Found %s", nextToken));
   }
 
   /**
@@ -116,7 +142,7 @@ public class Parser {
    * Parses a globals node
    * @return A {@link Node} of type GLOBALS
    */
-  private Node parseGlobals() throws IOException, UnexpectedTokenException {
+  private Node parseGlobals() throws IOException, SyntaxException {
     Node globals = new Node(NodeType.GLOBALS);
 
     // Handle <consts><types><arrays>
@@ -157,9 +183,10 @@ public class Parser {
     expectAndConsume(TokenType.LEFT_PAREN);
     func.setNextChild(parseParamList());
     expectAndConsume(TokenType.RIGHT_PAREN);
-    expectAndConsume(TokenType.COLON);
+    expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <rtype><funcbody>
+    // TODO possible overflow when function has parameters, locals, return value and statements
     func.setNextChild(parseReturnType());
     for (Node node : parseFunctionBody()) {
       func.setNextChild(node);
@@ -283,12 +310,8 @@ public class Parser {
    * Parse a function parameter.
    */
   private Node parseParam() throws UnexpectedTokenException, IOException {
-    if (isNext(TokenType.CONST)) {
-      consume();
-      return parseArrayDecl();
-    }
-
-    return null;
+    // TODO handle array decl and const
+    return parseDeclaration();
   }
   
   /**
@@ -301,7 +324,7 @@ public class Parser {
     Node node = new Node(NodeType.MAIN);
 
     // Handle <slist>
-    node.setNextChild(parseSList());
+    node.setNextChild(parseMainDeclarationList());
     
     // Handle begin <stats>
     expectAndConsume(TokenType.BEGIN);
@@ -317,9 +340,9 @@ public class Parser {
   }
 
   /**
-   * Handles a list of sdecl?
+   * Handles a list of declarations in the main function.
    */
-  private Node parseSList() throws IOException, UnexpectedTokenException {
+  private Node parseMainDeclarationList() throws IOException, UnexpectedTokenException {
     if (!isNext(TokenType.IDENTIFIER)) return null;
 
     Node decl = parseDeclaration();
@@ -341,7 +364,7 @@ public class Parser {
   private Node parseOptSDecl() throws IOException, UnexpectedTokenException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
-    return parseSList();
+    return parseMainDeclarationList();
   }
 
   /**
@@ -350,7 +373,7 @@ public class Parser {
   private Node parseStatements() throws IOException, SyntaxException {
     // If we detect an end here, we can throw a more meaningful error message
     // about how at least one statement is required.
-    if (isNext(TokenType.END)) {
+    if (isNext(TokenType.ELSE) || isNext(TokenType.END) || isNext(TokenType.UNTIL)) {
       throw new SyntaxException(
         "At least one statement is required here.\nBlock ends too early.",
         nextToken
@@ -363,7 +386,7 @@ public class Parser {
     // Handle <stat> if not <strstat>
     if (statement == null) {
       statement = parseInlineStatement();
-      expectAndConsume(TokenType.SEMI_COLON);
+      expectAndConsumeOrInsert(TokenType.SEMI_COLON);
     }
 
     // Handle <optstats>
@@ -386,6 +409,7 @@ public class Parser {
     switch (nextToken.getType()) {
       case ELSE:
       case END:
+      case UNTIL:
         return null;
       default:
         return parseStatements();
@@ -435,7 +459,7 @@ public class Parser {
   /**
    * Parse a list of assignments.
    */
-  private Node parseAssignmentList() throws IOException, UnexpectedTokenException {
+  private Node parseAssignmentList() throws IOException, SyntaxException {
     Node assignment = parseAssignment();
     Node chain = parseOptAssignmentList();
 
@@ -452,7 +476,7 @@ public class Parser {
   /**
    * Parse optionally more assignments.
    */
-  private Node parseOptAssignmentList() throws IOException, UnexpectedTokenException {
+  private Node parseOptAssignmentList() throws IOException, SyntaxException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseAssignmentList();
@@ -465,7 +489,7 @@ public class Parser {
     // Handle if
     expectAndConsume(TokenType.IF);
 
-    // Handle <bool>)
+    // Handle (<bool>)
     expectAndConsume(TokenType.LEFT_PAREN);
     Node bool = parseBool();
     expectAndConsume(TokenType.RIGHT_PAREN);
@@ -496,7 +520,7 @@ public class Parser {
    * Parse an optional else statement within an if statement
    */
   private Node parseOptionalElse() throws IOException, SyntaxException {
-    if (!isNext(TokenType.END)) return null;
+    if (!isNext(TokenType.ELSE)) return null;
     consume();
     return parseStatements();
   }
@@ -537,7 +561,7 @@ public class Parser {
   /**
    * Parse a return statement.
    */
-  private Node parseReturnStatement() throws IOException, UnexpectedTokenException {
+  private Node parseReturnStatement() throws IOException, SyntaxException {
     // Handle return
     Node node = new Node(NodeType.RETURN);
     expectAndConsume(TokenType.RETURN);
@@ -550,7 +574,7 @@ public class Parser {
   /**
    * Parse an optional expression after a return statement.
    */
-  private Node parseOptionalReturn() throws IOException, UnexpectedTokenException {
+  private Node parseOptionalReturn() throws IOException, SyntaxException {
     if (isNext(TokenType.SEMI_COLON)) return null;
     return parseExpression();
   }
@@ -572,7 +596,7 @@ public class Parser {
   /**
    * Parse an optional list of parameters.
    */
-  private Node parseOptCallParams() throws IOException, UnexpectedTokenException {
+  private Node parseOptCallParams() throws IOException, SyntaxException {
     if (isNext(TokenType.RIGHT_PAREN)) return null;
     return parseExpressionList();
   }
@@ -580,7 +604,7 @@ public class Parser {
   /**
    * Parse a list of expressions.
    */
-  private Node parseExpressionList() throws IOException, UnexpectedTokenException {
+  private Node parseExpressionList() throws IOException, SyntaxException {
     Node bool = parseBool();
     Node chain = parseOptExpressionList();
 
@@ -597,7 +621,7 @@ public class Parser {
   /**
    * Parse optionally more bools.
    */
-  private Node parseOptExpressionList() throws IOException, UnexpectedTokenException {
+  private Node parseOptExpressionList() throws IOException, SyntaxException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseExpressionList();
@@ -606,7 +630,7 @@ public class Parser {
   /**
    * Parse an assignment statement.
    */
-  private Node parseAssignment() throws UnexpectedTokenException, IOException {
+  private Node parseAssignment() throws SyntaxException, IOException {
     return parseAssignment(expectIdentifier());
   }
 
@@ -614,7 +638,7 @@ public class Parser {
    * Parse an assignment statement.
    * @param lexeme Lexeme of the variable being assigned to.
    */
-  private Node parseAssignment(String lexeme) throws UnexpectedTokenException, IOException {
+  private Node parseAssignment(String lexeme) throws SyntaxException, IOException {
     // Handle <var><asgnop>
     Node varNode = parseVar(lexeme);
     Node asignOp = parseAssignmentOp();
@@ -678,7 +702,7 @@ public class Parser {
   /**
    * Parse an I/O statment.
    */
-  private Node parseIoStatement() throws IOException, UnexpectedTokenException {
+  private Node parseIoStatement() throws IOException, SyntaxException {
     switch (nextToken.getType()) {
       case INPUT:
         return parseInputStatement();
@@ -694,7 +718,7 @@ public class Parser {
   /**
    * Parse an input statement.
    */
-  private Node parseInputStatement() throws IOException, UnexpectedTokenException {
+  private Node parseInputStatement() throws IOException, SyntaxException {
     Node node = new Node(NodeType.INPUT);
 
     // Handle input <vlist>
@@ -707,7 +731,7 @@ public class Parser {
   /**
    * Parse a print statement.
    */
-  private Node parsePrintStatement() throws IOException, UnexpectedTokenException {
+  private Node parsePrintStatement() throws IOException, SyntaxException {
     Node node = new Node(NodeType.PRINT);
     expectAndConsume(TokenType.PRINT);
 
@@ -719,7 +743,8 @@ public class Parser {
   /**
    * Parse println statement.
    */
-  private Node parsePrintLineStatement() throws IOException, UnexpectedTokenException {
+  private Node parsePrintLineStatement() throws IOException, SyntaxException {
+    // Handle println
     Node node = new Node(NodeType.PRINTLN);
     expectAndConsume(TokenType.PRINTLN);
 
@@ -731,7 +756,7 @@ public class Parser {
   /**
    * Parse a print list.
    */
-  private Node parsePrintList() throws IOException, UnexpectedTokenException {
+  private Node parsePrintList() throws IOException, SyntaxException {
     Node print = parsePrint();
     Node chain = parseOptPrintList();
 
@@ -748,7 +773,7 @@ public class Parser {
   /**
    * Parse optionally more print statements.
    */
-  private Node parseOptPrintList() throws IOException, UnexpectedTokenException {
+  private Node parseOptPrintList() throws IOException, SyntaxException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parsePrintList();
@@ -757,7 +782,7 @@ public class Parser {
   /**
    * Parse a print entry.
    */
-  private Node parsePrint() throws IOException, UnexpectedTokenException {
+  private Node parsePrint() throws IOException, SyntaxException {
     // Handle <string>
     if (isNext(TokenType.STRING_LITERAL)) {
       Node node = new Node(NodeType.STRING, nextToken.getLexeme());
@@ -771,7 +796,7 @@ public class Parser {
   /**
    * Parse a list of variables.
    */
-  private Node parseVarList() throws UnexpectedTokenException, IOException {
+  private Node parseVarList() throws SyntaxException, IOException {
     Node variable = parseVar();
     Node chain = parseOptVar();
 
@@ -788,7 +813,7 @@ public class Parser {
   /**
    * Parse optionall more variables.
    */
-  private Node parseOptVar() throws UnexpectedTokenException, IOException {
+  private Node parseOptVar() throws SyntaxException, IOException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseVarList();
@@ -797,7 +822,7 @@ public class Parser {
   /**
    * Parse a possible collection of constants.
    */
-  private Node parseConstants() throws IOException, UnexpectedTokenException {
+  private Node parseConstants() throws IOException, SyntaxException {
     if (!isNext(TokenType.CONSTANTS)) return null;
     consume();
     return parseInitList();
@@ -806,7 +831,7 @@ public class Parser {
   /**
    * Parse a list of initialisers.
    */
-  private Node parseInitList() throws UnexpectedTokenException, IOException {
+  private Node parseInitList() throws SyntaxException, IOException {
     Node node = new Node(NodeType.INIT_LIST);
 
     node.setNextChild(parseInit());
@@ -818,7 +843,7 @@ public class Parser {
   /**
    * Parse an initialiser.
    */
-  private Node parseInit() throws UnexpectedTokenException, IOException {
+  private Node parseInit() throws SyntaxException, IOException {
     // Handle identifier
     expect(TokenType.IDENTIFIER);
 
@@ -838,7 +863,7 @@ public class Parser {
   /**
    * Parse optionally more initialisers.
    */
-  private Node parseOptInit() throws IOException, UnexpectedTokenException {
+  private Node parseOptInit() throws IOException, SyntaxException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseInitList();
@@ -847,7 +872,7 @@ public class Parser {
   /**
    * Parse types.
    */
-  private Node parseTypes() throws IOException, UnexpectedTokenException {
+  private Node parseTypes() throws IOException, SyntaxException {
     // Only continue if given types
     if (!isNext(TokenType.TYPES)) return null;
     consume();
@@ -857,7 +882,7 @@ public class Parser {
   /**
    * Parse a list of types.
    */
-  private Node parseTypeList() throws IOException, UnexpectedTokenException {
+  private Node parseTypeList() throws IOException, SyntaxException {
     // Create our type list and parse
     Node node = new Node(NodeType.TYPE_LIST);
     node.setNextChild(parseType());
@@ -869,7 +894,7 @@ public class Parser {
   /**
    * Parse a struct or array type.
    */
-  private Node parseType() throws IOException, UnexpectedTokenException {
+  private Node parseType() throws IOException, SyntaxException {
     // Parse <ident> is
     String lexeme = expectIdentifier();
     expectAndConsume(TokenType.IS);
@@ -886,7 +911,7 @@ public class Parser {
   /**
    * Parse an array definition.
    */
-  private Node parseArrayDef(String lexeme) throws IOException, UnexpectedTokenException {
+  private Node parseArrayDef(String lexeme) throws IOException, SyntaxException {
     // Only continue if next token is array
     if (!isNext(TokenType.ARRAY)) {
       return null;
@@ -954,7 +979,7 @@ public class Parser {
   private Node parseDeclaration() throws UnexpectedTokenException, IOException {
     // Handle <ident> :
     Node node = new Node(NodeType.SDECL, expectIdentifier());
-    expectAndConsume(TokenType.COLON);
+    expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <stype>
     node.setNextChild(parseSType());
@@ -988,7 +1013,7 @@ public class Parser {
   /**
    * Parse optionally another type.
    */
-  private Node parseOptType() throws IOException, UnexpectedTokenException {
+  private Node parseOptType() throws IOException, SyntaxException {
     // Determine whether another type is defined
     if (isNext(TokenType.IDENTIFIER)) {
       return parseTypeList();
@@ -1035,7 +1060,7 @@ public class Parser {
     consume();
 
     // Handle :
-    expectAndConsume(TokenType.COLON);
+    expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <typeid>
     expect(TokenType.IDENTIFIER);
@@ -1048,7 +1073,7 @@ public class Parser {
   /**
    * Parse an expression.
    */
-  private Node parseExpression() throws IOException, UnexpectedTokenException {
+  private Node parseExpression() throws IOException, SyntaxException {
     Node term = parseTerm();
     Node chain = parseExpressionPrime();
 
@@ -1063,7 +1088,7 @@ public class Parser {
   /**
    * Parses optional extensions to an expression.
    */
-  private Node parseExpressionPrime() throws IOException, UnexpectedTokenException {
+  private Node parseExpressionPrime() throws IOException, SyntaxException {
     Node node;
 
     // Determine whether the next Token is a + or -
@@ -1095,7 +1120,7 @@ public class Parser {
   /**
    * Parse a term.
    */
-  private Node parseTerm() throws IOException, UnexpectedTokenException {
+  private Node parseTerm() throws IOException, SyntaxException {
     Node fact = parseFact();
     Node chain = parseTermPrime();
 
@@ -1110,7 +1135,7 @@ public class Parser {
   /**
    * Parses optional extensions to a term.
    */
-  private Node parseTermPrime() throws IOException, UnexpectedTokenException {
+  private Node parseTermPrime() throws IOException, SyntaxException {
     Node node;
 
     // Determine whether the next Token indicates another round
@@ -1144,7 +1169,7 @@ public class Parser {
   /**
    * Parse a fact.
    */
-  private Node parseFact() throws IOException, UnexpectedTokenException {
+  private Node parseFact() throws IOException, SyntaxException {
     Node exponent = parseExponent();
     Node chain = parseFactPrime();
 
@@ -1159,7 +1184,7 @@ public class Parser {
   /**
    * Parses optional extensions to a fact.
    */
-  private Node parseFactPrime() throws IOException, UnexpectedTokenException {
+  private Node parseFactPrime() throws IOException, SyntaxException {
     // Handle ^
     if (!isNext(TokenType.CARAT)) return null;
     consume();
@@ -1175,19 +1200,45 @@ public class Parser {
   /**
    * Parse an exponent.
    */
-  private Node parseExponent() throws IOException, UnexpectedTokenException {
+  private Node parseExponent() throws IOException, SyntaxException {
+    // Handle possible negative
+    boolean isNegative = false;
+    if (isNext(TokenType.MINUS)) {
+      consume();
+      isNegative = true;
+    }
+
     // Handle <int>
     if (isNext(TokenType.INTEGER_LITERAL)) {
-      Node node = new Node(NodeType.INTEGER_LITERAL, nextToken.getLexeme());
+      // Generate lexeme
+      String lexeme = nextToken.getLexeme();
+      if (isNegative) lexeme = "-" + lexeme;
+      Node node = new Node(NodeType.INTEGER_LITERAL, lexeme);
+
       consume();
       return node;
     }
 
     // Handle <real>
-    if (isNext(TokenType.REAL)) {
-      Node node = new Node(NodeType.REAL_LITERAL, nextToken.getLexeme());
+    if (isNext(TokenType.FLOAT_LITERAL)) {
+      // Generate lexeme
+      String lexeme = nextToken.getLexeme();
+      if (isNegative) lexeme = "-" + lexeme;
+      Node node = new Node(NodeType.REAL_LITERAL, lexeme);
+
       consume();
       return node;
+    }
+
+    // Nothing should be negative from here on
+    if (isNegative) {
+      warn(
+        String.format(
+          "Cannot have a negative %s.\nOnly integers and reals may be negative.\nMinus will be ignored.",
+          nextToken.getType().getHumanReadable()
+        ),
+        nextToken
+      );
     }
 
     // Handle true
@@ -1212,15 +1263,43 @@ public class Parser {
       return node;
     }
 
-    // TODO handle function call
+    // Handle possible function call
+    String lexeme = expectIdentifier();
+    if (isNext(TokenType.LEFT_PAREN)) {
+      return parseFunctionCall(lexeme);
+    }
 
-    return parseVar();
+    return parseVar(lexeme);
+  }
+
+  /**
+   * Parse a function call within an exponent.
+   * @param lexeme Function called.
+   */
+  private Node parseFunctionCall(String lexeme) throws IOException, SyntaxException {
+    Node node = new Node(NodeType.FUNC_CALL, lexeme);
+
+    // Parse (<optelist>)
+    expectAndConsume(TokenType.LEFT_PAREN);
+    node.setNextChild(parseOptFuncExpressionList());
+    expectAndConsume(TokenType.RIGHT_PAREN);
+
+    return node;
+  }
+
+  /**
+   * Optionally parse function expressions.
+   */
+  private Node parseOptFuncExpressionList() throws IOException, SyntaxException {
+    if (isNext(TokenType.RIGHT_PAREN)) return null;
+    Node node = parseExpressionList();
+    return node;
   }
 
   /**
    * Parse a boolean.
    */
-  private Node parseBool() throws IOException, UnexpectedTokenException {
+  private Node parseBool() throws IOException, SyntaxException {
     Node rel = parseRel();
     Node[] chain = parseOptBool();
 
@@ -1238,14 +1317,13 @@ public class Parser {
   /**
    * Parse more boolean
    */
-  private Node[] parseOptBool() throws IOException, UnexpectedTokenException {
+  private Node[] parseOptBool() throws IOException, SyntaxException {
     // Attempt to parse logical operator
     Node logicalOp = parseLogicalOp();
     if (logicalOp == null) return null;
 
-    Node rel = parseRel();
     Node chain = parseBool();
-    Node[] nodes = { rel, chain };
+    Node[] nodes = { logicalOp, chain };
     return nodes;
   }
 
@@ -1272,7 +1350,7 @@ public class Parser {
   /**
    * Parse relational statement.
    */
-  private Node parseRel() throws IOException, UnexpectedTokenException {
+  private Node parseRel() throws IOException, SyntaxException {
     Node not = parseOptNot();
     Node expression = parseExpression();
 
@@ -1311,7 +1389,7 @@ public class Parser {
   /**
    * Parse an optional relational operator.
    */
-  private Node parseOptRelOp() throws IOException, UnexpectedTokenException {
+  private Node parseOptRelOp() throws IOException, SyntaxException {
     // See if a <relop> is provided
     Node relop = parseRelOp();
     if (relop == null) return null;
@@ -1353,7 +1431,7 @@ public class Parser {
   /**
    * Parse a variable
    */
-  private Node parseVar() throws UnexpectedTokenException, IOException {
+  private Node parseVar() throws SyntaxException, IOException {
     return parseVar(expectIdentifier());
   }
 
@@ -1361,7 +1439,7 @@ public class Parser {
    * Parse a variable
    * @param lexeme Lexeme of the variable.
    */
-  private Node parseVar(String lexeme) throws UnexpectedTokenException, IOException {
+  private Node parseVar(String lexeme) throws SyntaxException, IOException {
     // Handle array variable
     Node arrVar = parseArrayVar(nextToken.getLexeme());
     if (arrVar != null) {
@@ -1375,7 +1453,7 @@ public class Parser {
   /**
    * Parse a more complex array variable.
    */
-  private Node parseArrayVar(String identifier) throws IOException, UnexpectedTokenException {
+  private Node parseArrayVar(String identifier) throws IOException, SyntaxException {
     // Handle [
     if (!isNext(TokenType.LEFT_BRACKET)) return null;
     consume();

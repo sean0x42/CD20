@@ -1,3 +1,4 @@
+import cd20.output.HTMLBuilder;
 import cd20.output.OutputController;
 import cd20.parser.Node;
 import cd20.parser.Parser;
@@ -9,6 +10,9 @@ public class A2 {
   private final Parser parser;
   private final Scanner scanner;
   private final OutputController outputController = new OutputController();
+
+  private int printWidth = 0;
+  private static final int MAX_PRINT_WIDTH = 70;
 
   public A2(Reader reader) {
     this.scanner = new Scanner(reader, outputController);
@@ -27,27 +31,51 @@ public class A2 {
     outputController.writeToFile("listing.txt");
 
     // Print AST
-    printNode(rootNode);
+    traverseNodes(rootNode);
+
+    // For better debugging of AST, print out to HTML
+    HTMLBuilder builder = new HTMLBuilder(rootNode);
+    builder.writeToFile("ast.html");
   }
 
-  private void printNode(Node current) {
-    if (current == null) {
+  /**
+   * Perform a pre-order traversal of the AST
+   * @param root Root of AST
+   */
+  private void traverseNodes(Node root) {
+    if (root == null) {
       System.out.println("Nothing to print! Perhaps an error occurred?");
       return;
     }
 
-    System.out.print(current.toString());
+    printNode(root);
 
-    if (current.getLeftChild() != null) {
-      printNode(current.getLeftChild());
+    if (root.getLeftChild() != null) {
+      traverseNodes(root.getLeftChild());
     }
 
-    if (current.getCentreChild() != null) {
-      printNode(current.getCentreChild());
+    if (root.getCentreChild() != null) {
+      traverseNodes(root.getCentreChild());
     }
 
-    if (current.getRightChild() != null) {
-      printNode(current.getRightChild());
+    if (root.getRightChild() != null) {
+      traverseNodes(root.getRightChild());
+    }
+  }
+
+  /**
+   * Prints a node.
+   * Automatically handles wrapping nodes once they go beyond 60 characters.
+   * @param node Node to print.
+   */
+  private void printNode(Node node) {
+    String str = node.toString();
+    System.out.print(str);
+    printWidth += str.length();
+
+    if (printWidth >= MAX_PRINT_WIDTH) {
+      System.out.println();
+      printWidth = 0;
     }
   }
 

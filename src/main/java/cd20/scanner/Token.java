@@ -64,12 +64,21 @@ public class Token {
    * Get the approximate width of this token.
    */
   public int getWidth() {
-    if (lexeme == null) {
-      return 1;
+    // Handle a few common token types
+    switch (type) {
+      case END:
+        return 3;
+      case TRUE:
+        return 4;
+      case FALSE:
+        return 5;
+      case STRING_LITERAL:
+        if (lexeme == null) return 1;
+        return lexeme.length() + 2;
     }
 
-    if (type == TokenType.STRING_LITERAL) {
-      return lexeme.length() + 2;
+    if (lexeme == null) {
+      return 1;
     }
 
     return lexeme.length();

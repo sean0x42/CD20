@@ -14,12 +14,8 @@ public class Annotation {
   private final int length;
   private final String annotation;
 
-  public Annotation(Token token, String annotation) {
+  public Annotation(String annotation, Token token) {
     this(token.getLine(), token.getColumn(), token.getWidth(), annotation);
-  }
-
-  public Annotation(int line, int column, String annotation) {
-    this(line, column, 1, annotation);
   }
 
   public Annotation(int line, int column, int length, String annotation) {

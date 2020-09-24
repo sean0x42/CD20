@@ -13,23 +13,31 @@ types
 
   doggos is array [10] of Dog
 
-func x(): void
+func x() void
 begin
   print "Test";
 end
 
 main
-  blue : bool
+  blue bool,
+  a : int
 begin
-  println "Hello world!";
+  println "Hello world!"
+
+  a = -0;
+  a += 8 + 10;
+
+  blue = -true;
 
   /-- x = 3.4.5;
 
-  if (blue)
-    println "Blue!";
-  else
+  if (not blue or x() and 2 >= 5)
     println "Not blue!";
+  else
+    println "Blue!";
   end
+
+  print x();
 end
 
 CD20 exhaustiveSample

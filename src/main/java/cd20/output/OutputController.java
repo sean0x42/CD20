@@ -83,7 +83,12 @@ public class OutputController {
       String line = lines.get(idx);
       String lineNumber = StringUtils.leftPad(lineNumberWidth, String.valueOf(idx + 1));
 
-      builder.append(lineNumber + " | " + line);
+      // Strip trailing newline
+      if (line.endsWith("\n")) {
+        line = line.substring(0, line.length() - 1);
+      }
+
+      builder.append(lineNumber + " | " + line + "\n");
 
       // Are there any annotationMap for this line?
       if (!annotationMap.containsKey(idx)) {
@@ -92,7 +97,7 @@ public class OutputController {
 
       // Append any annotationMap
       for (Annotation annotation : annotationMap.get(idx)) {
-        builder.append('\n' + annotation.format(lineNumberWidth) + "\n");
+        builder.append(annotation.format(lineNumberWidth) + "\n");
       }
     }
 

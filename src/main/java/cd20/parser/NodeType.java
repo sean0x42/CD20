@@ -34,7 +34,7 @@ public enum NodeType {
   INCREMENT             ("NPLEQ"),
   DECREMENT             ("NMNEQ"),
   STAR_EQUALS           ("NSTEQ"),
-  DIVIDE_EQUALS          ("NDVEQ"),
+  DIVIDE_EQUALS         ("NDVEQ"),
   INPUT                 ("NINPUT"),
   PRINT                 ("NPRINT"),
   PRINTLN               ("NPRLN"),

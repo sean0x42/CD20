@@ -149,9 +149,6 @@
             | false
             | (<bool>)
 
-<fncall> := <id>(<elist>)
-          | <id>()
-
   <fncall> := <id>(<optelist>)
 <optelist> := <elist>
             | ε

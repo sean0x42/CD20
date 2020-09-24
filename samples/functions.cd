@@ -20,8 +20,13 @@ end
  * Determines whether two booleans are equal
  **/
 func isEqual(alpha: bool, beta: bool): bool
+  isEqual : bool
 begin
-  return alpha == beta;
+  /-- Turns out you can't do this with the current syntax
+  /-- return alpha == beta;
+
+  isEqual = alpha == beta;
+  return isEqual;
 end
 
 main
