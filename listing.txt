@@ -23,6 +23,10 @@
 23 | begin
 24 |   println "Hello world!";
 25 | 
-26 |   x = 3.4.
-              ^
-              Syntax error: Expected ';' but found '.' (26:10)
+26 |   /-- x = 3.4.5;
+27 | 
+28 |   if (blue)
+29 |     println "Blue!";
+30 |   else
+       ^
+       Syntax error: Expected 'end' but found 'else' (30:3)

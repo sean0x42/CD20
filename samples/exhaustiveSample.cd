@@ -23,7 +23,7 @@ main
 begin
   println "Hello world!";
 
-  x = 3.4.5;
+  /-- x = 3.4.5;
 
   if (blue)
     println "Blue!";

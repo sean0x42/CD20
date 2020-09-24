@@ -497,7 +497,7 @@ public class Parser {
    */
   private Node parseOptionalElse() throws IOException, SyntaxException {
     if (!isNext(TokenType.END)) return null;
-    expectAndConsume(TokenType.ELSE);
+    consume();
     return parseStatements();
   }
 
