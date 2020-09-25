@@ -99,21 +99,20 @@ public class A2 {
   }
 
   public static void main(String[] args) {
+    if (args.length == 0) {
+      System.err.println("Path not provided.");
+      return;
+    }
+
+    // Read from file at path
+    File file = new File(args[0]);
     Reader reader;
 
-    if (args.length < 1) {
-      // Read from stdin
-      reader = new InputStreamReader(System.in);
-    } else {
-      // Read from file at path
-      File file = new File(args[0]);
-
-      try {
-        reader = new FileReader(file);
-      } catch (FileNotFoundException exception) {
-        System.err.println("File not found: '" + args[0] + "'");
-        return;
-      }
+    try {
+      reader = new FileReader(file);
+    } catch (FileNotFoundException exception) {
+      System.err.println("File not found: '" + args[0] + "'");
+      return;
     }
 
     // Attempt to run app
