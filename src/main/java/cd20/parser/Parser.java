@@ -186,7 +186,6 @@ public class Parser {
     expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <rtype><funcbody>
-    // TODO possible overflow when function has parameters, locals, return value and statements
     func.setNextChild(parseReturnType());
     for (Node node : parseFunctionBody()) {
       func.setNextChild(node);
@@ -374,10 +373,11 @@ public class Parser {
     // If we detect an end here, we can throw a more meaningful error message
     // about how at least one statement is required.
     if (isNext(TokenType.ELSE) || isNext(TokenType.END) || isNext(TokenType.UNTIL)) {
-      throw new SyntaxException(
-        "At least one statement is required here.\nBlock ends too early.",
+      warn(
+        "At least one statement is required here.\nWill try continuing anyway.",
         nextToken
       );
+      return null;
     }
 
     // First, handle simpler <strstat>
@@ -1234,7 +1234,7 @@ public class Parser {
     if (isNegative) {
       warn(
         String.format(
-          "Cannot have a negative %s.\nOnly integers and reals may be negative.\nMinus will be ignored.",
+          "Cannot have a negative %s.\nWill try continuing without the minus sign.",
           nextToken.getType().getHumanReadable()
         ),
         nextToken

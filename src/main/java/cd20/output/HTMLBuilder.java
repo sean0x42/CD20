@@ -9,10 +9,16 @@ import java.io.IOException;
 public class HTMLBuilder {
   private final Node rootNode;
 
+  private static final String TITLE = "CD20 AST Explorer";
+
   public HTMLBuilder(Node rootNode) {
     this.rootNode = rootNode;
   }
 
+  /**
+   * Write HTML to the given file.
+   * @param path Path to HTML file.
+   */
   public void writeToFile(String path) {
     try {
       BufferedWriter writer = new BufferedWriter(new FileWriter(path));
@@ -23,42 +29,62 @@ public class HTMLBuilder {
     }
   }
 
+  /**
+   * Generate HTML for this AST.
+   * @param writer A buffered writer to print output to.
+   */
   private void generate(BufferedWriter writer) throws IOException {
     writer.write("<!doctype html>");
     writer.write("<html>");
     writer.write("<head>");
-    writer.write("<title>CD20 AST Preview</title>");
+    writer.write("<title>" + TITLE + "</title>");
     writer.write("</head>");
-    writer.write("<style>" +
+    writer.write(
+        "<style>" +
         "body {" +
         "  font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\"," +
         "               Roboto, Oxygen-Sans, Ubuntu, Cantarell," +
         "               \"Helvetica Neue\", sans-serif;" +
         "}" +
-        "ol {" +
-        "  padding-left: 0;" +
-        "  margin-left: 1rem;" +
+        "details {" +
         "  border-left: 1px dashed #888;" +
-        "  list-style-type: none;" +
-        "  line-height: 1.0;" +
         "}" +
-        "li {" +
-        "  margin-bottom: 1rem;" +
+        "code {" +
+        "  font-size: 16px;" +
+        "  line-height: 1.6;" +
         "}" +
-        "</style>");
+        ".child-nodes {" +
+        "  margin-left: 1.75rem;" +
+        "}" +
+        ".leaf {" +
+        "  display: block;" +
+        "}" +
+        "</style>"
+    );
     writer.write("<body>");
 
-    writer.write("<h1>CD20 AST Preview</h1>");
+    writer.write("<h1>" + TITLE + "</h1>");
     traverseNode(writer, rootNode);
 
     writer.write("</body>");
     writer.write("</html>");
   }
 
+  /**
+   * Recursively traverse the tree.
+   * Performs a pre-order traversal.
+   * @param writer A buffered writer to print output to.
+   * @param node Current root of tree.
+   */
   private void traverseNode(BufferedWriter writer, Node node) throws IOException {
-    writer.write("<ol>");
+    if (!node.hasChildren()) {
+      writer.write("<code class=\"leaf\">" + node.toString() + "</code>");
+      return;
+    }
 
-    writer.write("<li>" + node.toString() + "</li>");
+    writer.write("<details>");
+    writer.write("<summary><code>" + node.toString() + "</code></summary>");
+    writer.write("<div class=\"child-nodes\">");
 
     if (node.getLeftChild() != null) {
       traverseNode(writer, node.getLeftChild());
@@ -72,6 +98,7 @@ public class HTMLBuilder {
       traverseNode(writer, node.getRightChild());
     }
 
-    writer.write("</ol>");
+    writer.write("</div>");
+    writer.write("</details>");
   }
 }

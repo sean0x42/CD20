@@ -4,7 +4,10 @@ import cd20.parser.Node;
 import cd20.parser.Parser;
 import cd20.scanner.Scanner;
 
+import java.awt.Desktop;
 import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 
 public class A2 {
   private final Parser parser;
@@ -13,6 +16,8 @@ public class A2 {
 
   private int printWidth = 0;
   private static final int MAX_PRINT_WIDTH = 70;
+  private static final String LISTING_OUTPUT_PATH = "listing.txt";
+  private static final String AST_OUTPUT_PATH = "ast.html";
 
   public A2(Reader reader) {
     this.scanner = new Scanner(reader, outputController);
@@ -21,21 +26,40 @@ public class A2 {
 
   /**
    * Run the application
+   * @param args A list of command line arguments.
    */
-  public void run() throws IOException {
+  public void run(List<String> args) throws IOException {
     // Parse
     Node rootNode = parser.parse();
 
     // Output listing
-    System.out.println(outputController.toString());
-    outputController.writeToFile("listing.txt");
+    System.out.println(outputController.output());
+    outputController.writeToFile(LISTING_OUTPUT_PATH);
+
+    if (rootNode == null) {
+      System.out.println("Nothing to print! Perhaps an error occurred?");
+      return;
+    }
 
     // Print AST
     traverseNodes(rootNode);
 
     // For better debugging of AST, print out to HTML
     HTMLBuilder builder = new HTMLBuilder(rootNode);
-    builder.writeToFile("ast.html");
+    builder.writeToFile(AST_OUTPUT_PATH);
+
+    // Open AST in browser if possible
+    if (args.contains("--open-ast")) {
+      // Ensure functionality is supported
+      if (!Desktop.isDesktopSupported()) {
+        System.out.println("Error: Cannot automatically open AST in browser.");
+        System.out.println("This functionality is not supported on this device.");
+        System.out.println("Please open the file manually.");
+        return;
+      }
+
+      Desktop.getDesktop().open(new File(AST_OUTPUT_PATH));
+    } 
   }
 
   /**
@@ -43,11 +67,6 @@ public class A2 {
    * @param root Root of AST
    */
   private void traverseNodes(Node root) {
-    if (root == null) {
-      System.out.println("Nothing to print! Perhaps an error occurred?");
-      return;
-    }
-
     printNode(root);
 
     if (root.getLeftChild() != null) {
@@ -99,7 +118,7 @@ public class A2 {
 
     // Attempt to run app
     try {
-      new A2(reader).run();
+      new A2(reader).run(Arrays.asList(args));
     } catch (IOException exception) {
       exception.printStackTrace();
     }

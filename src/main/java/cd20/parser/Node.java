@@ -15,24 +15,44 @@ public class Node {
   private Node centre = null;
   private Node right = null;
 
+  /**
+   * Construct a node.
+   * @param type Node type.
+   */
   public Node(NodeType type) {
     this(type, null);
   }
 
+  /**
+   * Construct a node.
+   * @param type Node type.
+   * @param value Node string value.
+   */
   public Node(NodeType type, String value) {
     this.type = type;
     this.value = value;
   }
 
+  /**
+   * Convert this node into a string.
+   */
   @Override
   public String toString() {
+    // Create a new joiner
     StringJoiner joiner = new StringJoiner("");
-
     joiner.add(StringUtils.rightPad(7, type.toString()));
 
+    // Add value if necessary
     if (value != null) {
-      StringBuilder builder = new StringBuilder(value);
+      String str = value;
 
+      // Add " around string node values
+      if (type == NodeType.STRING) {
+        str = "\"" + str + "\"";
+      }
+
+      // Append whitespace if needed
+      StringBuilder builder = new StringBuilder(str);
       while (builder.length() % 7 != 0) {
         builder.append(" ");
       }
@@ -75,6 +95,10 @@ public class Node {
     this.right = right;
   }
 
+  /**
+   * Set the next available child.
+   * @param node Node to set as child.
+   */
   public void setNextChild(Node child) {
     // Do not continue if setting null
     if (child == null) return;
@@ -83,8 +107,14 @@ public class Node {
       this.setLeftChild(child);
     } else if (centre == null) {
       this.setCentreChild(child);
-    } else {
+    } else if (right == null) {
       this.setRightChild(child);
+    } else {
+      // Create a copy of the current node type
+      Node node = new Node(type);
+      node.setNextChild(right);
+      node.setNextChild(child);
+      this.setRightChild(node);
     }
   }
 

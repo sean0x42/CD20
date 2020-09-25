@@ -13,9 +13,14 @@ types
 
   doggos is array [10] of Dog
 
-func x() void
+func x(someParam: real) int
+  someLocalVar : bool
 begin
   print "Test";
+end
+
+func y(): void
+begin
 end
 
 main

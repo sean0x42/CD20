@@ -27,22 +27,27 @@ public class Annotation {
 
   /**
    * Prepare this annotation for printing by converting it to a String.
+   * @param lineNumberWidth Width of the line number column to include in
+   * padding.
    */
   public String format(int lineNumberWidth) {
-    // Init
     StringJoiner joiner = new StringJoiner("\n");
-    String indent = StringUtils.repeat(' ', lineNumberWidth + column + 2);
 
-    // Generate actual annotation
-    joiner.add(indent + StringUtils.repeat('^', length));
+    // Create indent strings
+    String smallIndent = StringUtils.repeat(' ', lineNumberWidth + 3);
+    String largeIndent = StringUtils.repeat(' ', lineNumberWidth + column + 2);
+
+    // Generate arrow
+    joiner.add(largeIndent + StringUtils.repeat('^', length));
 
     // Split at newlines and render each line
     String[] strs = annotation.split("\n");
     for (int idx = 0; idx < strs.length; idx++) {
+      joiner.add(smallIndent + strs[idx]);
+
+      // Print line number on final line
       if (idx == strs.length - 1) {
-        joiner.add(indent + strs[idx] + " (" + line + ":" + column + ")")  ;
-      } else {
-        joiner.add(indent + strs[idx]);
+        joiner.add(smallIndent + "(" + line + ":" + column + ")\n");
       }
     }
 
