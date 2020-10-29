@@ -27,7 +27,15 @@ dependencies {
 
 application {
   // Define the main class for the application.
-  mainClassName = 'A2'
+  mainClassName = 'A3'
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs = ['src']
+    }
+  }
 }
 
 java {
