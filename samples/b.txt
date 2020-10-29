@@ -1,0 +1,26 @@
+/-- Using Simple Vars
+/-- Should PASS 
+
+CD20 b
+
+main
+    i : int,
+    looping : bool
+begin
+    looping = true;
+    
+    /-- Increments i until it gets to value 8.
+    for(i = 0 ; looping)
+        i += 1;
+
+        if(i >= 8)
+            looping = false;
+        end
+    end
+
+    /-- Printing value of i, should be 8.
+    println "value of i is ", i;
+
+end 
+
+CD20 b

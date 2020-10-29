@@ -171,7 +171,7 @@ public class Scanner {
     String identifier = "" + character;
 
     // Consume entire identifier first
-    while (Character.isLetterOrDigit(reader.peek())) {
+    while (reader.peek() != null && Character.isLetterOrDigit(reader.peek())) {
       identifier += consumeChar();
     }
 

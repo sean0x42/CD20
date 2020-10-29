@@ -1002,8 +1002,11 @@ public class Parser {
       case BOOL:
         lexeme = "bool";
         break;
+      case IDENTIFIER:
+        lexeme = nextToken.getLexeme();
+        break;
       default:
-        throw new UnexpectedTokenException("'int', 'real', or 'bool'", nextToken);
+        throw new UnexpectedTokenException("'int', 'real', 'bool', or an identifier", nextToken);
     }
 
     consume();
