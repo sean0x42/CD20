@@ -3,9 +3,9 @@
 CD20 a
 
 main
-    x : int
+  x : int
 begin
-    println "Hello world";
+  println "Hello world";
 end 
 
 CD20 a

@@ -1,0 +1,26 @@
+ 1 | /-- Using Simple Vars
+ 2 | /-- Should PASS 
+ 3 | 
+ 4 | CD20 b
+ 5 | 
+ 6 | main
+ 7 |     i : int,
+ 8 |     looping : bool
+ 9 | begin
+10 |     looping = true;
+11 |     
+12 |     /-- Increments i until it gets to value 8.
+13 |     for(i = 0 ; looping)
+14 |         i += 1;
+15 | 
+16 |         if(i >= 8)
+17 |             looping = false;
+18 |         end
+19 |     end
+20 | 
+21 |     /-- Printing value of i, should be 8.
+22 |     println "value of i is ", i;
+23 | 
+24 | end 
+25 | 
+26 | CD20 b

@@ -1,0 +1,11 @@
+CD20 comp
+
+constants
+  x = 1
+
+main
+begin
+  println "Testing, testing!";
+end
+
+CD20 comp

@@ -1,0 +1,97 @@
+ 1 | CD20 areaOfPolygon
+ 2 | 
+ 3 | types
+ 4 |   /-- A single point within a polygon
+ 5 |   Point is
+ 6 |     x: int,
+ 7 |     y: int
+ 8 |   end
+ 9 |   
+10 |   PointArray is array [20] of Point
+11 | 
+12 | arrays
+13 |   points: PointArray
+14 | 
+15 | /**
+16 |  * Prompt the user for a total number of points.
+17 |  **/
+18 | func inputNumberOfPoints(): int
+19 |   isValid: bool,
+20 |   num: int
+21 | begin
+22 |   /-- Continually loop around until a valid response is given
+23 |   repeat (isValid = false)
+24 |     /-- Prompt for response
+25 |     print "Number of points: ";
+26 |     input num;
+27 |   
+28 |     isValid = num >= 0 and num <= 20;
+29 | 
+30 |     /-- Handle invalid entry
+31 |     if (not isValid)
+32 |       println "Invalid. Must be a number between 0 and 20.";
+33 |     end
+34 |   until isValid;
+35 | 
+36 |   return num;
+37 | end
+38 | 
+39 | /**
+40 |  * Prompt the user for a point.
+41 |  **/
+42 | func inputPoint(index: int): void
+43 |   x: int,
+44 |   y: int
+45 | begin
+46 |   println "Please enter the coordinates of point ", index, ":";
+47 | 
+48 |   print "x: ";
+49 |   input x;
+50 |   points[index].x = x;
+51 | 
+52 |   print "y: ";
+53 |   input y;
+54 |   points[index].y = y;
+55 | end
+56 | 
+57 | /**
+58 |  * Compute the area of the polygon
+59 |  **/
+60 | func computeArea(): real
+61 |   idx: int,
+62 |   sum: int,
+63 |   addedX: int,
+64 |   addedY: int
+65 | begin
+66 |   /-- Compute sum
+67 |   for (idx = 0; idx < numberOfPoints - 2)
+68 |     /-- Cannot control order of operations with brackets, so split out manually
+69 |     addedX = points[idx + 1].x + points[idx].x;
+70 |     addedY = points[idx + 1].y + points[idx].y;
+71 |     sum += addedX * addedY;
+72 |   end
+73 | 
+74 |   /-- Compute absolute value
+75 |   if (sum < 0)
+76 |     sum = sum * -1;
+77 |   end
+78 | 
+79 |   return sum / 2;
+80 | end
+81 | 
+82 | main
+83 |   numberOfPoints: int,
+84 |   idx: int
+85 | begin
+86 |   numberOfPoints = inputNumberOfPoints();
+87 | 
+88 |   /-- Input each child point
+89 |   for (idx = 0; idx < numberOfPoints)
+90 |     inputPoint(idx);
+91 |     idx += 1;
+92 |   end
+93 | 
+94 |   println "Area of polygon: ", computeArea();
+95 | end
+96 | 
+97 | CD20 areaOfPolygon

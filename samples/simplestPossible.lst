@@ -1,0 +1,13 @@
+1 | CD20 s
+2 | main
+3 | begin
+4 |   println "Hello friend!";
+5 |   print "Your ", "name", "is: ";
+6 |   println "K, thanks. Bye"
+7 | end
+    ^^^
+    Warning: Expected ';'. Will try continuing anyway.
+    (7:1)
+
+8 | CD20 s
+9 | /--

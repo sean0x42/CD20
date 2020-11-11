@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 public class StringUtils {
   /**
-   * Generate a string by repeating a {@link Character}.
+   * Generate a string by repeating a Character.
    */
   public static String repeat(char ch, int times) {
     char[] array = new char[times];
@@ -13,18 +13,28 @@ public class StringUtils {
   }
 
   /**
-   * Left pad a {@link String} with space characters.
+   * Left pad a String with space characters.
    */
   public static String leftPad(int width, String string) {
+    return StringUtils.leftPad(width, string, ' ');
+  }
+
+  /**
+   * Left pad a String.
+   * @param width Minium string width.
+   * @param string String to pad.
+   * @param padChar Character to pad string with.
+   */
+  public static String leftPad(int width, String string, char padChar) {
     // Some strings will already be long enough
     if (string.length() >= width) {
       return string;
     }
 
-    // Pad with spaces
+    // Pad with padChar
     StringBuilder builder = new StringBuilder();
     while (builder.length() < width - string.length()) {
-      builder.append(' ');
+      builder.append(padChar);
     }
 
     // Add original string
@@ -34,7 +44,7 @@ public class StringUtils {
   }
   
   /**
-   * Right pad a {@link String} with space characters.
+   * Right pad a String with space characters.
    */
   public static String rightPad(int width, String string) {
     // Some strings will already be long enough
@@ -52,5 +62,17 @@ public class StringUtils {
     }
 
     return builder.toString();
+  }
+
+  /**
+   * Strips a file extension from a path
+   * @param path Path to strip extension from.
+   */
+  public static String stripExtension(String path) {
+    if (!path.contains(".")) {
+      return path;
+    }
+
+    return path.substring(0, path.indexOf('.'));
   }
 }

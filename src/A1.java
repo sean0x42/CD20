@@ -5,14 +5,14 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.Reader;
 
-import cd20.output.OutputController;
+import cd20.output.ListingGenerator;
 import cd20.scanner.Scanner;
 import cd20.scanner.Token;
 import cd20.scanner.TokenType;
 
 public class A1 {
   private Scanner scanner;
-  private OutputController outputController = new OutputController();
+  private ListingGenerator outputController = new ListingGenerator();
 
   public A1(Reader reader) {
     this.scanner = new Scanner(reader, outputController);

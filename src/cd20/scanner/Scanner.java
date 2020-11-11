@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 import cd20.output.Annotation;
-import cd20.output.OutputController;
+import cd20.output.ListingGenerator;
 
 /**
  * A lexer for CD20
@@ -16,12 +16,12 @@ public class Scanner {
   private int column = 0;
   private Character character;
 
-  private OutputController outputController;
+  private ListingGenerator outputController;
 
   /**
    * Constructs a new {@link Scanner}.
    */
-  public Scanner(Reader reader, OutputController outputController) {
+  public Scanner(Reader reader, ListingGenerator outputController) {
     this.reader = new PeekableReader(new BufferedReader(reader));
     this.outputController = outputController;
   }

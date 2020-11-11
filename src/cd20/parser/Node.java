@@ -1,8 +1,11 @@
 package cd20.parser;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringJoiner;
 
 import cd20.StringUtils;
+import cd20.symboltable.Symbol;
 
 /**
  * A node within a CD20 AST.
@@ -14,6 +17,8 @@ public class Node {
   private Node left = null;
   private Node centre = null;
   private Node right = null;
+
+  private Symbol symbol = null;
 
   /**
    * Construct a node.
@@ -120,5 +125,31 @@ public class Node {
 
   public boolean hasChildren() {
     return left != null || centre != null || right != null;
+  }
+
+  public List<Node> getChildren() {
+    List<Node> children = new ArrayList<>();
+
+    if (left != null) {
+      children.add(left);
+    }
+
+    if (centre != null) {
+      children.add(centre);
+    }
+
+    if (right != null) {
+      children.add(right);
+    }
+
+    return children;
+  }
+
+  public void setSymbol(Symbol symbol) {
+    this.symbol = symbol;
+  }
+
+  public Symbol getSymbol() {
+    return symbol;
   }
 }

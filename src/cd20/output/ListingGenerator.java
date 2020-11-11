@@ -14,17 +14,17 @@ import java.util.HashMap;
 /**
  * Manages source code listing.
  */
-public class OutputController {
+public class ListingGenerator {
   private List<String> lines;
   private Map<Integer, List<Annotation>> annotationMap;
 
-  public OutputController() {
+  public ListingGenerator() {
     lines = new ArrayList<>();
     annotationMap = new HashMap<>();
   }
 
   /**
-   * Add a single {@link Character} to a line.
+   * Add a single Character.
    * Note: Characters must be added in order, and no line may be skipped.
    */
   public void addCharacter(int line, Character ch) {
@@ -32,7 +32,7 @@ public class OutputController {
   }
 
   /**
-   * Add a {@link String} to a line.
+   * Add a String to a line.
    * Note: Strings must be added in order, and no line may be skipped.
    */
   public void addString(int line, String string) {
@@ -64,14 +64,15 @@ public class OutputController {
    */
   public void writeToFile(String path) throws IOException {
     BufferedWriter writer = new BufferedWriter(new FileWriter(path));
-    writer.append(output());
+    writer.append(toString());
     writer.close();
   }
 
   /**
    * Turn all output into a single string.
    */
-  public String output() {
+  @Override
+  public String toString() {
     StringBuilder builder = new StringBuilder();
     int lineNumberWidth = String.valueOf(lines.size()).length();
 

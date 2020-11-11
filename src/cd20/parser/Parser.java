@@ -1,15 +1,23 @@
 package cd20.parser;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
 import cd20.output.Annotation;
-import cd20.output.OutputController;
+import cd20.output.ListingGenerator;
 import cd20.output.WarningAnnotation;
 import cd20.scanner.Scanner;
 import cd20.scanner.Token;
 import cd20.scanner.TokenType;
+import cd20.symboltable.BaseRegister;
+import cd20.symboltable.Symbol;
+import cd20.symboltable.SymbolTableManager;
+import cd20.symboltable.SymbolType;
+import cd20.symboltable.attribute.FloatConstantAttribute;
+import cd20.symboltable.attribute.IntegerConstantAttribute;
+import cd20.symboltable.attribute.ReturnTypeAttribute;
 
 /**
  * A top down recursive parser for CD20
@@ -17,17 +25,17 @@ import cd20.scanner.TokenType;
  * Turns a stream of tokens into an AST.
  */
 public class Parser {
-  private final OutputController output;
+  private final ListingGenerator output;
   private final Scanner scanner;
-  private final SymbolManager symbolTable;
+  private final SymbolTableManager symbolManager;
 
   private Token nextToken;
   private Node rootNode;
 
-  public Parser(Scanner scanner, OutputController output) {
-    this.scanner = scanner;
+  public Parser(Reader reader, SymbolTableManager symbolManager, ListingGenerator output) {
+    this.scanner = new Scanner(reader, output);
     this.output = output;
-    this.symbolTable = new SymbolManager();
+    this.symbolManager = symbolManager;
   }
 
   /**
@@ -75,7 +83,7 @@ public class Parser {
    */
   private String expectIdentifier() throws IOException, UnexpectedTokenException {
     String lexeme = nextToken.getLexeme();
-    expectAndConsume(TokenType.IDENTIFIER);
+    expect(TokenType.IDENTIFIER);
     return lexeme;
   }
 
@@ -123,18 +131,24 @@ public class Parser {
    * @return A {@link Node} of type PROGRAM
    */
   private Node parseProgram() throws IOException, SyntaxException {
-    symbolTable.pushScope("global");
+    symbolManager.createScope("global");
 
     // Handle CD20 <id>
     expectAndConsume(TokenType.CD20);
     rootNode = new Node(NodeType.PROGRAM, expectIdentifier());
+
+    // Create symbol
+    Symbol symbol = new Symbol(SymbolType.MODULE, nextToken);
+    rootNode.setSymbol(symbol);
+    symbolManager.insertSymbol(symbol);
+    consume();
 
     // Handle <globals><funcs><main>
     rootNode.setNextChild(parseGlobals());
     rootNode.setNextChild(parseFunctions());
     rootNode.setNextChild(parseMain());
 
-    symbolTable.popScope();
+    symbolManager.leaveScope();
     return rootNode;
   }
 
@@ -177,36 +191,44 @@ public class Parser {
     expectAndConsume(TokenType.FUNC);
     String lexeme = expectIdentifier();
     Node func = new Node(NodeType.FUNCTION_DEF, lexeme);
-    symbolTable.pushScope(String.format("%s_function", lexeme));
+
+    // Create  symbol
+    Symbol symbol = new Symbol(SymbolType.FUNCTION, nextToken);
+    func.setSymbol(symbol);
+    symbolManager.createScope(String.format("%s_function", lexeme));
+    symbolManager.insertSymbol(symbol);
+    consume();
 
     // Handle (<plist>):
+    // TODO Handle function params
     expectAndConsume(TokenType.LEFT_PAREN);
     func.setNextChild(parseParamList());
     expectAndConsume(TokenType.RIGHT_PAREN);
     expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <rtype><funcbody>
-    func.setNextChild(parseReturnType());
+    symbol.addAttribute(parseReturnType());
+
     for (Node node : parseFunctionBody()) {
       func.setNextChild(node);
     }
 
-    symbolTable.popScope();
+    symbolManager.leaveScope();
     return func;
   }
 
   /**
    * Parse a function return type.
-   * @return A {@link Node} of type SType or null (for void functions).
+   * @return A {@link ReturnTypeAttribute} for use within a Symbol.
    */
-  private Node parseReturnType() throws IOException, UnexpectedTokenException {
+  private ReturnTypeAttribute parseReturnType() throws IOException, UnexpectedTokenException {
     // Handle void
     if (isNext(TokenType.VOID)) {
       consume();
-      return null;
+      return new ReturnTypeAttribute(null);
     }
 
-    return parseSType();
+    return new ReturnTypeAttribute(SType.fromNode(parseSType()));
   }
 
   /**
@@ -318,7 +340,7 @@ public class Parser {
    */
   private Node parseMain() throws IOException, SyntaxException {
     // Handle main
-    symbolTable.pushScope("main");
+    symbolManager.createScope("main");
     expectAndConsume(TokenType.MAIN);
     Node node = new Node(NodeType.MAIN);
 
@@ -334,7 +356,7 @@ public class Parser {
     expectAndConsume(TokenType.CD20);
     expectAndConsume(TokenType.IDENTIFIER);
 
-    symbolTable.popScope();
+    symbolManager.leaveScope();
     return node;
   }
 
@@ -438,8 +460,12 @@ public class Parser {
   private Node parseForStatement() throws IOException, SyntaxException {
     // Handle for (
     Node node = new Node(NodeType.FOR);
+    int line = nextToken.getLine();
     expectAndConsume(TokenType.FOR);
     expectAndConsume(TokenType.LEFT_PAREN);
+
+    // Handle scope
+    symbolManager.createScope(String.format("%s_for%d", symbolManager.getScope(), line));
     
     // Handle <asgnlist>;
     node.setNextChild(parseAssignmentList());
@@ -453,6 +479,7 @@ public class Parser {
     node.setNextChild(parseStatements());
     expectAndConsume(TokenType.END);
 
+    symbolManager.leaveScope();
     return node;
   }
 
@@ -487,7 +514,9 @@ public class Parser {
    */
   private Node parseIfStatement() throws IOException, SyntaxException {
     // Handle if
+    int line = nextToken.getLine();
     expectAndConsume(TokenType.IF);
+    symbolManager.createScope(String.format("%s_if%d", symbolManager.getScope(), line));
 
     // Handle (<bool>)
     expectAndConsume(TokenType.LEFT_PAREN);
@@ -549,6 +578,7 @@ public class Parser {
    */
   private Node parseStatementPrime() throws SyntaxException, IOException {
     String lexeme = expectIdentifier();
+    consume();
 
     switch (nextToken.getType()) {
       case LEFT_PAREN:
@@ -631,7 +661,9 @@ public class Parser {
    * Parse an assignment statement.
    */
   private Node parseAssignment() throws SyntaxException, IOException {
-    return parseAssignment(expectIdentifier());
+    String identifier = expectIdentifier();
+    consume();
+    return parseAssignment(identifier);
   }
 
   /**
@@ -643,6 +675,11 @@ public class Parser {
     Node varNode = parseVar(lexeme);
     Node asignOp = parseAssignmentOp();
     asignOp.setLeftChild(varNode);
+
+    // Find relevant symbol
+    Symbol symbol = symbolManager.resolve(lexeme);
+    asignOp.setSymbol(symbol);
+    varNode.setSymbol(symbol);
 
     // Handle <bool>
     asignOp.setRightChild(parseBool());
@@ -682,8 +719,10 @@ public class Parser {
     Node node = new Node(NodeType.REPEAT);
 
     // Handle repeat (
+    int line = nextToken.getLine();
     expectAndConsume(TokenType.REPEAT);
     expectAndConsume(TokenType.LEFT_PAREN);
+    symbolManager.createScope(String.format("%s_repeat%d", symbolManager.getScope(), line));
 
     // Handle <asgnlist>
     node.setNextChild(parseAssignmentList());
@@ -696,6 +735,7 @@ public class Parser {
     expectAndConsume(TokenType.UNTIL);
     node.setNextChild(parseBool());
 
+    symbolManager.leaveScope();
     return node;
   }
 
@@ -786,6 +826,12 @@ public class Parser {
     // Handle <string>
     if (isNext(TokenType.STRING_LITERAL)) {
       Node node = new Node(NodeType.STRING, nextToken.getLexeme());
+
+      // Create symbol
+      Symbol symbol = new Symbol(SymbolType.STRING_CONSTANT, nextToken);
+      node.setSymbol(symbol);
+      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
+
       consume();
       return node;
     }
@@ -848,7 +894,11 @@ public class Parser {
     expect(TokenType.IDENTIFIER);
 
     Node node = new Node(NodeType.INIT, nextToken.getLexeme());
-    symbolTable.insertSymbol(new Symbol(nextToken));
+    
+    // @TODO What kind of symbol type? We need to infer based on expression
+    Symbol symbol = new Symbol(SymbolType.variableFromNode(node), nextToken);
+    node.setSymbol(symbol);
+    symbolManager.insertSymbol(symbol);
 
     // Move on
     consume();
@@ -897,6 +947,7 @@ public class Parser {
   private Node parseType() throws IOException, SyntaxException {
     // Parse <ident> is
     String lexeme = expectIdentifier();
+    consume();
     expectAndConsume(TokenType.IS);
 
     // Handle array
@@ -978,11 +1029,20 @@ public class Parser {
    */
   private Node parseDeclaration() throws UnexpectedTokenException, IOException {
     // Handle <ident> :
+    Token token = nextToken;
     Node node = new Node(NodeType.SDECL, expectIdentifier());
+    consume();
+
     expectAndConsumeOrInsert(TokenType.COLON);
 
     // Handle <stype>
-    node.setNextChild(parseSType());
+    Node stype = parseSType();
+    node.setNextChild(stype);
+
+    // Create symbol
+    Symbol symbol = new Symbol(SymbolType.variableFromNode(stype), token);
+    node.setSymbol(symbol);
+    symbolManager.insertSymbol(symbol);
 
     return node;
   }
@@ -1218,6 +1278,17 @@ public class Parser {
       if (isNegative) lexeme = "-" + lexeme;
       Node node = new Node(NodeType.INTEGER_LITERAL, lexeme);
 
+      // Create symbol
+      Symbol symbol = new Symbol(
+        SymbolType.INTEGER_CONSTANT,
+        lexeme,
+        nextToken.getLine(),
+        nextToken.getColumn()
+      );
+      symbol.addAttribute(new IntegerConstantAttribute(lexeme));
+      node.setSymbol(symbol);
+      symbolManager.insertSymbol(symbol);
+
       consume();
       return node;
     }
@@ -1228,6 +1299,17 @@ public class Parser {
       String lexeme = nextToken.getLexeme();
       if (isNegative) lexeme = "-" + lexeme;
       Node node = new Node(NodeType.REAL_LITERAL, lexeme);
+
+      // Create symbol
+      Symbol symbol = new Symbol(
+        SymbolType.FLOAT_CONSTANT,
+        lexeme,
+        nextToken.getLine(),
+        nextToken.getColumn()
+      );
+      symbol.addAttribute(new FloatConstantAttribute(lexeme));
+      node.setSymbol(symbol);
+      symbolManager.insertSymbol(symbol);
 
       consume();
       return node;
@@ -1268,6 +1350,7 @@ public class Parser {
 
     // Handle possible function call
     String lexeme = expectIdentifier();
+    consume();
     if (isNext(TokenType.LEFT_PAREN)) {
       return parseFunctionCall(lexeme);
     }
@@ -1435,7 +1518,9 @@ public class Parser {
    * Parse a variable
    */
   private Node parseVar() throws SyntaxException, IOException {
-    return parseVar(expectIdentifier());
+    String lexeme = expectIdentifier();
+    consume();
+    return parseVar(lexeme);
   }
 
   /**
@@ -1449,8 +1534,10 @@ public class Parser {
       return arrVar;
     }
 
-    // Handle simple variable
-    return new Node(NodeType.SIMPLE_VARIABLE, lexeme);
+    Symbol symbol = symbolManager.resolve(lexeme);
+    Node node = new Node(NodeType.SIMPLE_VARIABLE, lexeme);
+    node.setSymbol(symbol);
+    return node;
   }
 
   /**

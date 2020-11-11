@@ -1,7 +1,9 @@
 CD20 s
 main
 begin
-    /--print "Hello, world!";
+  println "Hello friend!";
+  print "Your ", "name ", "is: ";
+  println "K, thanks. Bye"
 end
 CD20 s
 /--

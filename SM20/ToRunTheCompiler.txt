@@ -1,0 +1,3 @@
+To Run The Compiler:
+
+java -jar SM20.jar
