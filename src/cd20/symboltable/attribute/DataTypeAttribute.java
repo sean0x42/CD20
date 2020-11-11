@@ -2,10 +2,10 @@ package cd20.symboltable.attribute;
 
 import cd20.parser.DataType;
 
-public class ReturnTypeAttribute implements Attribute {
-  private final DataType type;
+public class DataTypeAttribute implements Attribute {
+  private DataType type;
 
-  public ReturnTypeAttribute(DataType type) {
+  public DataTypeAttribute(DataType type) {
     this.type = type;
   }
 
@@ -15,6 +15,6 @@ public class ReturnTypeAttribute implements Attribute {
 
   @Override
   public String toString() {
-    return String.format("return %s", type.toString());
+    return String.format("Data type = %s", type.toString());
   }
 }

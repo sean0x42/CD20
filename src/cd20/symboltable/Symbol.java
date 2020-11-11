@@ -2,6 +2,7 @@ package cd20.symboltable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 import cd20.scanner.Token;
 import cd20.symboltable.attribute.Attribute;
@@ -24,7 +25,17 @@ public class Symbol {
    * @param token Token to use as basis for symbol.
    */
   public Symbol(SymbolType type, Token token) {
-    this(type, token.getLexeme(), token.getLine(), token.getColumn());
+    this(type, token.getLexeme(), token);
+  }
+
+  /**
+   * Construct a symbol from a token.
+   * @param type Symbol type.
+   * @param name Symbol's unique name within the current scope.
+   * @param token Token to use as basis for symbol.
+   */
+  public Symbol(SymbolType type, String name, Token token) {
+    this(type, name, token.getLine(), token.getColumn());
   }
 
   /**
@@ -127,11 +138,21 @@ public class Symbol {
 
   @Override
   public String toString() {
-    return String.format(
+    StringJoiner joiner = new StringJoiner("\n");
+
+    joiner.add(
+      String.format(
         "[%s] (%d, %d)",
         type.name(),
         register != null ? register.getId() : -1,
         offset
+      )
     );
+
+    for (Attribute attribute : attributes) {
+      joiner.add(" * " + attribute.toString());
+    }
+
+    return joiner.toString();
   }
 }

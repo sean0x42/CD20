@@ -40,9 +40,10 @@ public class A3 {
 
     // Output listing
     output.writeToFile(this.outputBasePath + LISTING_EXTENSION);
+    System.out.println(output.toString());
 
     if (rootNode == null) {
-      System.out.println("Nothing to print! Perhaps an error occurred?");
+      System.out.println("Compilation failed.");
       return;
     }
 

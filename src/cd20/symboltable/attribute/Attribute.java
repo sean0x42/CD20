@@ -1,3 +1,6 @@
 package cd20.symboltable.attribute;
 
-public interface Attribute {};
+public interface Attribute {
+  @Override
+  public String toString();
+};

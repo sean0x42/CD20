@@ -1,9 +1,10 @@
 package cd20.symboltable;
 
+import cd20.parser.DataType;
 import cd20.parser.Node;
 
 public enum SymbolType {
-  MODULE,
+  EXPRESSION,
   FUNCTION,
   ARRAY,
   STRUCT,
@@ -13,8 +14,26 @@ public enum SymbolType {
   FLOAT_CONSTANT,
   STRING_VARIABLE,
   STRING_CONSTANT,
-  BOOLEAN_VARIABLE;
+  BOOLEAN_VARIABLE,
+  STRUCT_OR_ARRAY_VARIABLE;
 
+  public static SymbolType fromDataType(DataType type) {
+    if (type.isInteger()) {
+      return SymbolType.INTEGER_VARIABLE;
+    } else if (type.isReal()) {
+      return SymbolType.FLOAT_VARIABLE;
+    } else if (type.isBoolean()) {
+      return SymbolType.BOOLEAN_VARIABLE;
+    } else if (type.isString()) {
+      return SymbolType.STRING_VARIABLE;
+    } else {
+      return SymbolType.STRUCT_OR_ARRAY_VARIABLE;
+    }
+  }
+
+  /**
+   * @deprecated
+   */
   public static SymbolType variableFromNode(Node node) {
     switch (node.getValue()) {
       case "int":
@@ -24,7 +43,7 @@ public enum SymbolType {
       case "bool":
         return SymbolType.BOOLEAN_VARIABLE;
       default:
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(node.toString());
     }
   }
 

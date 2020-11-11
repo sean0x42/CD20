@@ -1,11 +1,11 @@
 package cd20.symboltable;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SymbolTable {
-  private final Map<String, Symbol> symbols = new HashMap<>();
+  private final Map<String, Symbol> symbols = new LinkedHashMap<>();
   private final String scope;
 
   public SymbolTable(String scope) {

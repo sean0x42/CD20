@@ -35,6 +35,7 @@ public class SM20Generator {
    * @param path Path to create file.
    */
   public void writeToFile(String path) throws IOException {
+    symbolManager.printDebug();
     generateProgram(root);
 
     // 1. Collect constants from symbol table and assign space
@@ -53,7 +54,6 @@ public class SM20Generator {
     writer.close();
 
     codeManager.printDebug();
-    symbolManager.printDebug();
     System.out.println(module);
   }
 

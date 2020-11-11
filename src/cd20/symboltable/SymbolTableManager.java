@@ -1,13 +1,16 @@
 package cd20.symboltable;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
 
+/**
+ * A class which manages a collection of symbol tables and scope.
+ */
 public class SymbolTableManager {
   private final Stack<SymbolTable> scope = new Stack<>();
-  private final Map<String, SymbolTable> tables = new HashMap<>();
+  private final Map<String, SymbolTable> tables = new LinkedHashMap<>();
 
   private int registerZeroCounter = 0;
   private int registerOneCounter = 0;
@@ -123,6 +126,16 @@ public class SymbolTableManager {
     }
 
     return null;
+  }
+
+  /**
+   * Determine whether a symbol with the given name exists in the current scope.
+   * @param name Name of symbol to search for.
+   * @return Whether the symbol exists within the current scope.
+   */
+  public boolean containsSymbol(String name) {
+    SymbolTable table = scope.peek();
+    return table.resolve(name) != null;
   }
 
   public Collection<SymbolTable> getTables() {
