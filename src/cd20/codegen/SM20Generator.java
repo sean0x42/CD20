@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import cd20.parser.DataType;
 import cd20.parser.Node;
 import cd20.parser.NodeType;
 import cd20.symboltable.BaseRegister;
@@ -17,7 +18,7 @@ public class SM20Generator {
   private final Node root;
   private final CodeManager codeManager;
 
-  private int baseRegister1Offset = 0;
+  private int totalVariables = 0;
 
   /**
    * Construct a new SM20 code generator.
@@ -35,7 +36,6 @@ public class SM20Generator {
    * @param path Path to create file.
    */
   public void writeToFile(String path) throws IOException {
-    symbolManager.printDebug();
     generateProgram(root);
 
     // 1. Collect constants from symbol table and assign space
@@ -53,6 +53,7 @@ public class SM20Generator {
     writer.append(module);
     writer.close();
 
+    symbolManager.printDebug();
     codeManager.printDebug();
     System.out.println(module);
   }
@@ -69,25 +70,46 @@ public class SM20Generator {
   }
 
   /**
+   * Extract the main node from a program node.
+   * @param node Program node.
+   */
+  private Node extractMain(Node node) {
+    for (Node child : node.getChildren()) {
+      if (child.getType() == NodeType.MAIN) return child;
+    }
+
+    return null;
+  }
+
+  /**
    * Generate code for the program.
    */
   private void generateProgram(Node node) {
     SymbolTable table = symbolManager.enterScope("global");
-    allocateGlobals(table);
 
-    // @TODO jump to main function immediately
+    allocateGlobals(table);
+    allocateMain();
+
+    // Now that all global variables have been assigned an offset, we can
+    // allocate space on the stack
+    if (totalVariables > 0) {
+      codeManager.insert(new Instruction(Operation.LB, (byte) totalVariables));
+      codeManager.insert(Operation.ALLOC);
+    }
 
     for (Node child : node.getChildren()) {
       switch (child.getType()) {
         case GLOBALS:
           generateGlobals(child);
           continue;
+        case FUNCTIONS:
+          generateFunctions(child);
+          continue;
         case MAIN:
           generateMain(child);
           continue;
         default:
-          debug(child);
-          throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException("Unknown token type");
       }
     }
 
@@ -99,7 +121,55 @@ public class SM20Generator {
    * Generate code for globals section.
    */
   private void generateGlobals(Node node) {
-    
+    for (Node child : node.getChildren()) {
+      switch (child.getType()) {
+        case INIT_LIST:
+          generateInitList(child);
+          continue;
+        default:
+          throw new UnsupportedOperationException("Not sure how to handle node of type: " + child.getType().toString());
+      }
+    }
+  }
+
+  /**
+   * Generate code for an initialiser list.
+   */
+  private void generateInitList(Node node) {
+    for (Node child : node.getChildren()) {
+      // Handle possible init list nesting
+      if (child.getType() == NodeType.INIT_LIST) {
+        generateInitList(child);
+        continue;
+      }
+
+      generateInit(child);
+    }
+  }
+
+  /**
+   * Generate code for an initialiser.
+   */
+  private void generateInit(Node node) {
+    // Load address for value
+    codeManager.insert(new BackfillInstruction(node.getSymbol(), Operation.PLACEHOLDER_LA));
+
+    // Load and store
+    generateExpression(node.getLeftChild());
+    codeManager.insert(Operation.ST);
+  }
+
+  /**
+   * Generate code for functions.
+   */
+  private void generateFunctions(Node node) {
+    for (Node func : node.getChildren()) {
+      generateFunction(func);
+    }
+  }
+
+  private void generateFunction(Node node) {
+    SymbolTable table = symbolManager.enterScope(String.format("__function__%s", node.getValue()));
   }
 
   /**
@@ -111,7 +181,10 @@ public class SM20Generator {
     for (Symbol symbol : table.getSymbols()) {
       switch (symbol.getType()) {
         case STRING_CONSTANT:
-          codeManager.addStringConstant(symbol.getName(), symbol);
+          codeManager.addStringConstant(
+              symbol.getFirstAttribute(StringConstantAttribute.class).getConstant(),
+              symbol
+          );
           continue;
         case FLOAT_CONSTANT:
           codeManager.addFloatConstant(
@@ -125,7 +198,6 @@ public class SM20Generator {
               symbol
           );
           continue;
-        case STRING_VARIABLE:
         case INTEGER_VARIABLE:
         case FLOAT_VARIABLE:
         case BOOLEAN_VARIABLE:
@@ -137,10 +209,17 @@ public class SM20Generator {
     }
   }
 
+  private void allocateMain() {
+    SymbolTable table = symbolManager.enterScope("main");
+    allocateGlobals(table);
+    symbolManager.leaveScope();
+  }
+
   private void allocateVariable(SymbolTable table, Symbol symbol) {
     if (table.getScope() == "main" || table.getScope() == "global") {
-      symbol.setRegister(BaseRegister.GLOBALS);
-      symbol.setOffset(symbolManager.getNextAvailableOffset(BaseRegister.GLOBALS));
+      // symbol.setRegister(BaseRegister.GLOBALS);
+      // symbol.setOffset(symbolManager.getNextAvailableOffset(BaseRegister.GLOBALS));
+      totalVariables++;
     } else {
       // symbol.setBase(2);
       // symbol.setOffset(baseRegister2Offset);
@@ -155,23 +234,12 @@ public class SM20Generator {
   private void generateMain(Node node) {
     // Get symbol table and assign (base, offset) pairs.
     SymbolTable table = symbolManager.enterScope("main");
-    allocateGlobals(table);
-
-    // Now that all global variables have been assigned an offset, we can
-    // allocate space on the stack
-    byte totalVariables = (byte) (baseRegister1Offset / 8);
-    if (totalVariables > 0) {
-      codeManager.insert(new Instruction(Operation.LB, totalVariables));
-      codeManager.insert(Operation.ALLOC);
-    }
 
     for (Node child : node.getChildren()) {
       switch (child.getType()) {
         case SDECL:
-          // Nothing to do with SDECL. Space is allocated above.
-          continue;
         case SDECL_LIST:
-          // TODO
+          // Should already be allocated
           continue;
         default:
           generateStatement(child);
@@ -181,17 +249,6 @@ public class SM20Generator {
 
   private void generateDeclaration(Node node) {
 
-  }
-
-  /**
-   * Generate code for a function.
-   */
-  private void generateFunction(Node node) {
-    // Params will have negative index starting at -8
-    // Local variables will have positive offsets starting at 16.
-    // (2, 0) is the call frame, and (2, 8) is the number of parameters
-    // Function variables base reg 2
-    debug(node);
   }
 
   /**
@@ -217,9 +274,52 @@ public class SM20Generator {
       case FOR:
         generateFor(node);
         return;
+      case IF:
+        generateIf(node);
+        return;
       default:
-        debug(node);
         throw new UnsupportedOperationException(node.toString());
+    }
+  }
+
+  /**
+   * Generate code for an IF statement.
+   */
+  private void generateIf(Node node) {
+    // We need to know the address of the next instruction so we can jump there
+    // if the condition fails.
+    generateBool(node.getLeftChild());
+    debug(node.getRightChild());
+  }
+
+  /**
+   * Generate code for a bool.
+   */
+  private void generateBool(Node node) {
+    switch (node.getType()) {
+      case EQUAL:
+        generateEqual(node);
+        return;
+      default:
+        throw new UnsupportedOperationException("Generate bool " + node.getType().toString());
+    }
+  }
+
+  /**
+   * Generate code for an equals (==) comparison.
+   */
+  private void generateEqual(Node node) {
+    DataType type = AttributeUtils.getDataType(node);
+
+    // Push both left and right sides to the stack
+    generateExpression(node.getLeftChild());
+    generateExpression(node.getRightChild());
+
+    if (type.isBoolean()) {
+      codeManager.insert(Operation.AND);
+    } else if (type.isNumeric()) {
+      codeManager.insert(Operation.SUB);
+      codeManager.insert(Operation.EQ);
     }
   }
 
@@ -255,6 +355,7 @@ public class SM20Generator {
       case SIMPLE_VARIABLE:
       case ARRAY_VARIABLE:
         loadVariable(node);
+        codeManager.insert(Operation.VALPR);
         return;
       default:
         throw new UnsupportedOperationException(node.getType().toString());
@@ -324,7 +425,6 @@ public class SM20Generator {
    * Load a simple variable's value onto the stack.
    */
   private void loadSimpleVariable(Node node) {
-    debug(node);
     codeManager.insert(new BackfillInstruction(node.getSymbol(), Operation.PLACEHOLDER_LV));
   }
 
@@ -342,48 +442,13 @@ public class SM20Generator {
   private void generateExpression(Node node) {
     switch (node.getType()) {
       case TRUE:
-        generateBool(true);
+        generateBoolean(true);
         return;
       case FALSE:
-        generateBool(false);
+        generateBoolean(false);
         return;
-      default:
-        throw new UnsupportedOperationException(node.toString());
-    }
-  }
-
-  /**
-   * Push a bool onto the stack.
-   */
-  private void generateBool(boolean bool) {
-    codeManager.insert(bool ? Operation.TRUE : Operation.FALSE);
-  }
-
-  /**
-   * Generate code for a for loop.
-   */
-  private void generateFor(Node node) {
-    System.out.println("TODO: for loops");
-  }
-
-  public void generate(Node node) {
-    switch (node.getType()) {
-      case STATEMENTS:
-        for (Node child : node.getChildren()) {
-          generate(child);
-        }
-        return;
-      case INCREMENT:
-        generateOperationAssign(node, Operation.ADD);
-        return;
-      case DECREMENT:
-        generateOperationAssign(node, Operation.SUB);
-        return;
-      case STAR_EQUALS:
-        generateOperationAssign(node, Operation.MUL);
-        return;
-      case DIVIDE_EQUALS:
-        generateOperationAssign(node, Operation.DIV);
+      case INTEGER_LITERAL:
+        codeManager.insert(new BackfillInstruction(node.getSymbol(), Operation.PLACEHOLDER_LV));
         return;
       case ADD:
         generateNoOperandInstruction(node, Operation.ADD);
@@ -398,10 +463,40 @@ public class SM20Generator {
         generateNoOperandInstruction(node, Operation.DIV);
         return;
       case SIMPLE_VARIABLE:
-        generateSimpleVar(node);
+        loadSimpleVariable(node);
         return;
-      case INTEGER_LITERAL:
-        generateIntegerLiteral(node);
+      default:
+        throw new UnsupportedOperationException(node.toString());
+    }
+  }
+
+  /**
+   * Push a bool onto the stack.
+   */
+  private void generateBoolean(boolean bool) {
+    codeManager.insert(bool ? Operation.TRUE : Operation.FALSE);
+  }
+
+  /**
+   * Generate code for a for loop.
+   */
+  private void generateFor(Node node) {
+    System.out.println("TODO: for loops");
+  }
+
+  public void generate(Node node) {
+    switch (node.getType()) {
+      case INCREMENT:
+        generateOperationAssign(node, Operation.ADD);
+        return;
+      case DECREMENT:
+        generateOperationAssign(node, Operation.SUB);
+        return;
+      case STAR_EQUALS:
+        generateOperationAssign(node, Operation.MUL);
+        return;
+      case DIVIDE_EQUALS:
+        generateOperationAssign(node, Operation.DIV);
         return;
       default:
         break;
@@ -414,8 +509,8 @@ public class SM20Generator {
    * @param operation Operation to use.
    */
   private void generateNoOperandInstruction(Node node, Operation operation) {
-    generate(node.getLeftChild());
-    generate(node.getRightChild());
+    generateExpression(node.getLeftChild());
+    generateExpression(node.getRightChild());
     codeManager.insert(operation);
   }
 
@@ -444,9 +539,5 @@ public class SM20Generator {
    * @param node Simple variable node.
    */
   private void generateSimpleVar(Node node) {
-  }
-
-  private void generateIntegerLiteral(Node node) {
-    // 1. Generate a constant if doesn't exist?
   }
 }

@@ -10,4 +10,9 @@ public class IntegerConstantAttribute implements Attribute {
   public int getConstant() {
     return constant;
   }
+
+  @Override
+  public String toString() {
+    return String.format("Integer literal = %d", constant);
+  }
 }

@@ -15,11 +15,7 @@ import cd20.symboltable.BaseRegister;
 import cd20.symboltable.Symbol;
 import cd20.symboltable.SymbolTableManager;
 import cd20.symboltable.SymbolType;
-import cd20.symboltable.attribute.DataTypeAttribute;
-import cd20.symboltable.attribute.FloatConstantAttribute;
-import cd20.symboltable.attribute.IntegerConstantAttribute;
-import cd20.symboltable.attribute.ParameterAttribute;
-import cd20.symboltable.attribute.ReturnTypeAttribute;
+import cd20.symboltable.attribute.*;
 
 /**
  * A top down recursive parser for CD20
@@ -112,6 +108,39 @@ public class Parser {
       String.format("Expected %s. Will try continuing anyway.", type.getHumanReadable()),
       nextToken
     );
+  }
+
+  /**
+   * Throw a semantic exception if the node is not numeric.
+   * @param node Node to check type of.
+   * @param token Token to annotate exception to.
+   */
+  private void expectNumeric(Node node, Token token) throws SemanticException {
+    DataType nodeType = AttributeUtils.getDataType(node);
+
+    // Ensure exponent is numeric
+    if (!nodeType.isNumeric()) {
+      throw new SemanticException(
+          String.format("Type must be numerical. Instead found type: %s", nodeType.toString()),
+          token
+      );
+    }
+  }
+
+  /**
+   * Throw a semantic exception if the node is not a boolean.
+   * @param node Node to check type of.
+   * @param token Token to annotate exception to.
+   */
+  private void expectBoolean(Node node, Token token) throws SemanticException {
+    DataType type = AttributeUtils.getDataType(node);
+
+    if (!type.isBoolean()) {
+      throw new SemanticException(
+          String.format("Type must be boolean. Instead found type: %s", type.toString()),
+          token
+      );
+    }
   }
 
   /**
@@ -311,7 +340,7 @@ public class Parser {
    */
   private Node parseLocals() throws ParserException, IOException {
     if (isNext(TokenType.IDENTIFIER)) {
-      return parseDeclarationList();
+      return parseDeclarationList(BaseRegister.DECLARATIONS);
     }
 
     return null;
@@ -320,9 +349,9 @@ public class Parser {
   /**
    * Parse declaration list.
    */
-  private Node parseDeclarationList() throws ParserException, IOException {
-    Node decl = parseDeclaration();
-    Node chain = parseOptDeclarationList();
+  private Node parseDeclarationList(BaseRegister register) throws ParserException, IOException {
+    Node decl = parseDeclaration(register);
+    Node chain = parseOptDeclarationList(register);
 
     if (chain != null) {
       Node node = new Node(NodeType.DECL_LIST);
@@ -337,10 +366,10 @@ public class Parser {
   /**
    * Parse optionally more declarations.
    */
-  private Node parseOptDeclarationList() throws ParserException, IOException {
+  private Node parseOptDeclarationList(BaseRegister register) throws ParserException, IOException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
-    return parseDeclarationList();
+    return parseDeclarationList(register);
   }
 
   /**
@@ -385,7 +414,7 @@ public class Parser {
    */
   private Node parseParam() throws ParserException, IOException {
     // TODO handle array decl and const
-    return parseDeclaration();
+    return parseDeclaration(BaseRegister.DECLARATIONS);
   }
   
   /**
@@ -417,7 +446,7 @@ public class Parser {
   private Node parseMainDeclarationList() throws IOException, ParserException {
     if (!isNext(TokenType.IDENTIFIER)) return null;
 
-    Node decl = parseDeclaration();
+    Node decl = parseDeclaration(BaseRegister.GLOBALS);
     Node chain = parseOptSDecl();
 
     if (chain != null) {
@@ -442,7 +471,7 @@ public class Parser {
   /**
    * Parse a collection of statements.
    */
-  private Node parseStatements() throws IOException, SyntaxException {
+  private Node parseStatements() throws IOException, ParserException {
     // If we detect an end here, we can throw a more meaningful error message
     // about how at least one statement is required.
     if (isNext(TokenType.ELSE) || isNext(TokenType.END) || isNext(TokenType.UNTIL)) {
@@ -478,7 +507,7 @@ public class Parser {
   /**
    * Parses optionally more statements.
    */
-  private Node parseOptionalStatements() throws IOException, SyntaxException {
+  private Node parseOptionalStatements() throws IOException, ParserException {
     switch (nextToken.getType()) {
       case ELSE:
       case END:
@@ -493,7 +522,7 @@ public class Parser {
    * Parse a block statement.
    * @return A {@link Node} containing a block statement.
    */
-  private Node parseBlockStatement() throws IOException, SyntaxException {
+  private Node parseBlockStatement() throws IOException, ParserException {
     switch (nextToken.getType()) {
       case FOR:
         return parseForStatement();
@@ -508,7 +537,7 @@ public class Parser {
    * Parse a for statement.
    * @return A {@link Node} containing a for statement.
    */
-  private Node parseForStatement() throws IOException, SyntaxException {
+  private Node parseForStatement() throws IOException, ParserException {
     // Handle for (
     Node node = new Node(NodeType.FOR);
     int line = nextToken.getLine();
@@ -537,7 +566,7 @@ public class Parser {
   /**
    * Parse a list of assignments.
    */
-  private Node parseAssignmentList() throws IOException, SyntaxException {
+  private Node parseAssignmentList() throws IOException, ParserException {
     Node assignment = parseAssignment();
     Node chain = parseOptAssignmentList();
 
@@ -554,7 +583,7 @@ public class Parser {
   /**
    * Parse optionally more assignments.
    */
-  private Node parseOptAssignmentList() throws IOException, SyntaxException {
+  private Node parseOptAssignmentList() throws IOException, ParserException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseAssignmentList();
@@ -563,11 +592,9 @@ public class Parser {
   /**
    * Parse an if statement.
    */
-  private Node parseIfStatement() throws IOException, SyntaxException {
+  private Node parseIfStatement() throws IOException, ParserException {
     // Handle if
-    int line = nextToken.getLine();
     expectAndConsume(TokenType.IF);
-    symbolManager.createScope(String.format("%s_if%d", symbolManager.getScope(), line));
 
     // Handle (<bool>)
     expectAndConsume(TokenType.LEFT_PAREN);
@@ -599,7 +626,7 @@ public class Parser {
   /**
    * Parse an optional else statement within an if statement
    */
-  private Node parseOptionalElse() throws IOException, SyntaxException {
+  private Node parseOptionalElse() throws IOException, ParserException {
     if (!isNext(TokenType.ELSE)) return null;
     consume();
     return parseStatements();
@@ -608,7 +635,7 @@ public class Parser {
   /**
    * Parse a simple inline statement
    */
-  private Node parseInlineStatement() throws IOException, SyntaxException {
+  private Node parseInlineStatement() throws IOException, ParserException {
     switch (nextToken.getType()) {
       case REPEAT:
         return parseRepeatStatement();
@@ -627,22 +654,23 @@ public class Parser {
    * Parse call and assignment statements, which both begin with a common
    * <ident>
    */
-  private Node parseStatementPrime() throws SyntaxException, IOException {
+  private Node parseStatementPrime() throws ParserException, IOException {
     String lexeme = expectIdentifier();
+    Token token = nextToken;
     consume();
 
     switch (nextToken.getType()) {
       case LEFT_PAREN:
         return parseFunctionCallStatement(lexeme);
       default:
-        return parseAssignment(lexeme);
+        return parseAssignment(lexeme, token);
     }
   }
 
   /**
    * Parse a return statement.
    */
-  private Node parseReturnStatement() throws IOException, SyntaxException {
+  private Node parseReturnStatement() throws IOException, ParserException {
     // Handle return
     Node node = new Node(NodeType.RETURN);
     expectAndConsume(TokenType.RETURN);
@@ -655,7 +683,7 @@ public class Parser {
   /**
    * Parse an optional expression after a return statement.
    */
-  private Node parseOptionalReturn() throws IOException, SyntaxException {
+  private Node parseOptionalReturn() throws IOException, ParserException {
     if (isNext(TokenType.SEMI_COLON)) return null;
     return parseExpression();
   }
@@ -663,7 +691,7 @@ public class Parser {
   /**
    * Parse a function call statement
    */
-  private Node parseFunctionCallStatement(String lexeme) throws IOException, SyntaxException {
+  private Node parseFunctionCallStatement(String lexeme) throws IOException, ParserException {
     Node node = new Node(NodeType.FUNCTION_CALL, lexeme);
 
     // (<optparams>)
@@ -677,7 +705,7 @@ public class Parser {
   /**
    * Parse an optional list of parameters.
    */
-  private Node parseOptCallParams() throws IOException, SyntaxException {
+  private Node parseOptCallParams() throws IOException, ParserException {
     if (isNext(TokenType.RIGHT_PAREN)) return null;
     return parseExpressionList();
   }
@@ -685,7 +713,7 @@ public class Parser {
   /**
    * Parse a list of expressions.
    */
-  private Node parseExpressionList() throws IOException, SyntaxException {
+  private Node parseExpressionList() throws IOException, ParserException {
     Node bool = parseBool();
     Node chain = parseOptExpressionList();
 
@@ -702,7 +730,7 @@ public class Parser {
   /**
    * Parse optionally more bools.
    */
-  private Node parseOptExpressionList() throws IOException, SyntaxException {
+  private Node parseOptExpressionList() throws IOException, ParserException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseExpressionList();
@@ -711,19 +739,21 @@ public class Parser {
   /**
    * Parse an assignment statement.
    */
-  private Node parseAssignment() throws SyntaxException, IOException {
+  private Node parseAssignment() throws ParserException, IOException {
     String identifier = expectIdentifier();
+    Token token = nextToken;
     consume();
-    return parseAssignment(identifier);
+    return parseAssignment(identifier, token);
   }
 
   /**
    * Parse an assignment statement.
    * @param lexeme Lexeme of the variable being assigned to.
+   * @param token Token.
    */
-  private Node parseAssignment(String lexeme) throws SyntaxException, IOException {
+  private Node parseAssignment(String lexeme, Token token) throws ParserException, IOException {
     // Handle <var><asgnop>
-    Node varNode = parseVar(lexeme);
+    Node varNode = parseVar(lexeme, token);
     Node asignOp = parseAssignmentOp();
     asignOp.setLeftChild(varNode);
 
@@ -766,14 +796,12 @@ public class Parser {
   /**
    * Parse a repeat statement.
    */
-  private Node parseRepeatStatement() throws IOException, SyntaxException {
+  private Node parseRepeatStatement() throws IOException, ParserException {
     Node node = new Node(NodeType.REPEAT);
 
     // Handle repeat (
-    int line = nextToken.getLine();
     expectAndConsume(TokenType.REPEAT);
     expectAndConsume(TokenType.LEFT_PAREN);
-    symbolManager.createScope(String.format("%s_repeat%d", symbolManager.getScope(), line));
 
     // Handle <asgnlist>
     node.setNextChild(parseAssignmentList());
@@ -786,14 +814,13 @@ public class Parser {
     expectAndConsume(TokenType.UNTIL);
     node.setNextChild(parseBool());
 
-    symbolManager.leaveScope();
     return node;
   }
 
   /**
    * Parse an I/O statment.
    */
-  private Node parseIoStatement() throws IOException, SyntaxException {
+  private Node parseIoStatement() throws IOException, ParserException {
     switch (nextToken.getType()) {
       case INPUT:
         return parseInputStatement();
@@ -809,7 +836,7 @@ public class Parser {
   /**
    * Parse an input statement.
    */
-  private Node parseInputStatement() throws IOException, SyntaxException {
+  private Node parseInputStatement() throws IOException, ParserException {
     Node node = new Node(NodeType.INPUT);
 
     // Handle input <vlist>
@@ -822,7 +849,7 @@ public class Parser {
   /**
    * Parse a print statement.
    */
-  private Node parsePrintStatement() throws IOException, SyntaxException {
+  private Node parsePrintStatement() throws IOException, ParserException {
     Node node = new Node(NodeType.PRINT);
     expectAndConsume(TokenType.PRINT);
 
@@ -834,7 +861,7 @@ public class Parser {
   /**
    * Parse println statement.
    */
-  private Node parsePrintLineStatement() throws IOException, SyntaxException {
+  private Node parsePrintLineStatement() throws IOException, ParserException {
     // Handle println
     Node node = new Node(NodeType.PRINTLN);
     expectAndConsume(TokenType.PRINTLN);
@@ -847,7 +874,7 @@ public class Parser {
   /**
    * Parse a print list.
    */
-  private Node parsePrintList() throws IOException, SyntaxException {
+  private Node parsePrintList() throws IOException, ParserException {
     Node print = parsePrint();
     Node chain = parseOptPrintList();
 
@@ -864,7 +891,7 @@ public class Parser {
   /**
    * Parse optionally more print statements.
    */
-  private Node parseOptPrintList() throws IOException, SyntaxException {
+  private Node parseOptPrintList() throws IOException, ParserException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parsePrintList();
@@ -873,7 +900,7 @@ public class Parser {
   /**
    * Parse a print entry.
    */
-  private Node parsePrint() throws IOException, SyntaxException {
+  private Node parsePrint() throws IOException, ParserException {
     // Handle <string>
     if (isNext(TokenType.STRING_LITERAL)) {
       Node node = new Node(NodeType.STRING, nextToken.getLexeme());
@@ -884,6 +911,7 @@ public class Parser {
         "__string__" + nextToken.getLexeme().replace(" ", "_"),
         nextToken
       );
+      symbol.addAttribute(new StringConstantAttribute(nextToken.getLexeme()));
       node.setSymbol(symbol);
       symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
 
@@ -897,7 +925,7 @@ public class Parser {
   /**
    * Parse a list of variables.
    */
-  private Node parseVarList() throws SyntaxException, IOException {
+  private Node parseVarList() throws ParserException, IOException {
     Node variable = parseVar();
     Node chain = parseOptVar();
 
@@ -914,7 +942,7 @@ public class Parser {
   /**
    * Parse optionall more variables.
    */
-  private Node parseOptVar() throws SyntaxException, IOException {
+  private Node parseOptVar() throws ParserException, IOException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
     return parseVarList();
@@ -926,17 +954,17 @@ public class Parser {
   private Node parseConstants() throws IOException, ParserException {
     if (!isNext(TokenType.CONSTANTS)) return null;
     consume();
-    return parseInitList();
+    return parseInitList(BaseRegister.GLOBALS);
   }
 
   /**
    * Parse a list of initialisers.
    */
-  private Node parseInitList() throws ParserException, IOException {
+  private Node parseInitList(BaseRegister register) throws ParserException, IOException {
     Node node = new Node(NodeType.INIT_LIST);
 
-    node.setNextChild(parseInit());
-    node.setNextChild(parseOptInit());
+    node.setNextChild(parseInit(register));
+    node.setNextChild(parseOptInit(register));
 
     return node;
   }
@@ -944,7 +972,7 @@ public class Parser {
   /**
    * Parse an initialiser.
    */
-  private Node parseInit() throws ParserException, IOException {
+  private Node parseInit(BaseRegister register) throws ParserException, IOException {
     // Handle identifier
     expect(TokenType.IDENTIFIER);
 
@@ -964,15 +992,12 @@ public class Parser {
     expectAndConsume(TokenType.ASSIGN);
 
     // Handle expression
-    // TODO propograte expression data type
     Node expression = parseExpression();
-    DataType type = expression
-      .getSymbol()
-      .getFirstAttribute(DataTypeAttribute.class)
-      .getType();
+    DataType type = AttributeUtils.getDataType(expression);
     Symbol symbol = new Symbol(SymbolType.fromDataType(type), initToken);
+    symbol.addAttribute(new DataTypeAttribute(type));
     node.setSymbol(symbol);
-    symbolManager.insertSymbol(symbol);
+    symbolManager.insertSymbol(symbol, register);
     
     node.setNextChild(expression);
 
@@ -982,10 +1007,10 @@ public class Parser {
   /**
    * Parse optionally more initialisers.
    */
-  private Node parseOptInit() throws IOException, ParserException {
+  private Node parseOptInit(BaseRegister register) throws IOException, ParserException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
-    return parseInitList();
+    return parseInitList(register);
   }
 
   /**
@@ -1031,7 +1056,7 @@ public class Parser {
   /**
    * Parse an array definition.
    */
-  private Node parseArrayDef(String lexeme) throws IOException, SyntaxException {
+  private Node parseArrayDef(String lexeme) throws IOException, ParserException {
     // Only continue if next token is array
     if (!isNext(TokenType.ARRAY)) {
       return null;
@@ -1070,7 +1095,7 @@ public class Parser {
    * Parse a list of struct fields
    */
   private Node parseFields() throws ParserException, IOException {
-    Node declaration = parseDeclaration();
+    Node declaration = parseDeclaration(BaseRegister.GLOBALS); // TODO is this correct register?
     Node sibling = parseOptFields();
 
     // Handle multiple fields
@@ -1096,7 +1121,7 @@ public class Parser {
   /**
    * Parse a struct declaration.
    */
-  private Node parseDeclaration() throws ParserException, IOException {
+  private Node parseDeclaration(BaseRegister register) throws ParserException, IOException {
     // Handle <ident> :
     Token token = nextToken;
     Node node = new Node(NodeType.SDECL, expectIdentifier());
@@ -1117,15 +1142,13 @@ public class Parser {
     }
 
     // Extract data type from node
-    DataType type = dataType
-      .getSymbol()
-      .getFirstAttribute(DataTypeAttribute.class)
-      .getType();
+    DataType type = AttributeUtils.getDataType(dataType);
 
     // Create symbol
     Symbol symbol = new Symbol(SymbolType.fromDataType(type), token);
+    symbol.addAttribute(new DataTypeAttribute(type));
     node.setSymbol(symbol);
-    symbolManager.insertSymbol(symbol);
+    symbolManager.insertSymbol(symbol, register);
 
     return node;
   }
@@ -1154,7 +1177,7 @@ public class Parser {
         throw new UnexpectedTokenException("'int', 'real', 'bool', or an identifier", nextToken);
     }
 
-    Symbol symbol = new Symbol(SymbolType.EXPRESSION, nextToken);
+    Symbol symbol = new Symbol(SymbolType.TEMPORARY, nextToken);
     symbol.addAttribute(new DataTypeAttribute(type));
 
     consume();
@@ -1227,18 +1250,16 @@ public class Parser {
   /**
    * Parse an expression.
    */
-  private Node parseExpression() throws IOException, SyntaxException {
+  private Node parseExpression() throws IOException, ParserException {
+    Token termToken = nextToken;
     Node term = parseTerm();
+    Token chainToken = nextToken;
     Node chain = parseExpressionPrime();
 
-    // TODO
-    // 1. Determine term type
-    // 2. Determine chain type
-    // 3. Ensure that types are both numbers
-    // 4. Make sure returned node has the correct type set
-    Symbol symbol = new Symbol(type, token);
-
     if (chain != null) {
+      expectNumeric(term, termToken);
+      expectNumeric(chain, chainToken);
+      
       chain.setLeftChild(term);
       return chain;
     }
@@ -1249,7 +1270,7 @@ public class Parser {
   /**
    * Parses optional extensions to an expression.
    */
-  private Node parseExpressionPrime() throws IOException, SyntaxException {
+  private Node parseExpressionPrime() throws IOException, ParserException {
     Node node;
 
     // Determine whether the next Token is a + or -
@@ -1261,17 +1282,26 @@ public class Parser {
       return null;
     }
 
+    Token nodeToken = nextToken;
     consume(); // Consume the +/- symbol
 
     // Parse the term and recursively parse the remainder of the chain
+    Token termToken = nextToken;
     Node term = parseTerm();
+    Token chainToken = nextToken;
     Node chain = parseExpressionPrime();
       
     // There are more nodes to come
     if (chain != null) {
+      expectNumeric(term, termToken);
+      expectNumeric(chain, chainToken);
+
+      AttributeUtils.propogateDataType(term, node, nodeToken);
+
       node.setLeftChild(term);
       node.setRightChild(chain);
     } else {
+      AttributeUtils.propogateDataType(term, node, nodeToken);
       node.setRightChild(term);
     }
 
@@ -1281,11 +1311,16 @@ public class Parser {
   /**
    * Parse a term.
    */
-  private Node parseTerm() throws IOException, SyntaxException {
+  private Node parseTerm() throws IOException, ParserException {
+    Token factToken = nextToken;
     Node fact = parseFact();
+    Token chainToken = nextToken;
     Node chain = parseTermPrime();
 
     if (chain != null) {
+      expectNumeric(fact, factToken);
+      expectNumeric(chain, chainToken);
+
       chain.setLeftChild(fact);
       return chain;
     }
@@ -1296,7 +1331,7 @@ public class Parser {
   /**
    * Parses optional extensions to a term.
    */
-  private Node parseTermPrime() throws IOException, SyntaxException {
+  private Node parseTermPrime() throws IOException, ParserException {
     Node node;
 
     // Determine whether the next Token indicates another round
@@ -1310,17 +1345,26 @@ public class Parser {
       return null;
     }
 
+    Token nodeToken = nextToken;
     consume(); // Consume the * / % token
 
     // Parse the term and recursively parse the remainder of the chain
+    Token termToken = nextToken;
     Node term = parseFact();
-    Node chain = parseFactPrime();
-      
+    Token chainToken = nextToken;
+    Node chain = parseTermPrime();
+
     // There are more nodes to come
     if (chain != null) {
+      expectNumeric(term, termToken);
+      expectNumeric(chain, chainToken);
+
+      AttributeUtils.propogateDataType(term, node, nodeToken);
+
       node.setLeftChild(term);
       node.setRightChild(chain);
     } else {
+      AttributeUtils.propogateDataType(term, node, nodeToken);
       node.setRightChild(term);
     }
 
@@ -1330,11 +1374,16 @@ public class Parser {
   /**
    * Parse a fact.
    */
-  private Node parseFact() throws IOException, SyntaxException {
+  private Node parseFact() throws IOException, ParserException {
+    Token exponentToken = nextToken;
     Node exponent = parseExponent();
+    Token chainToken = nextToken;
     Node chain = parseFactPrime();
 
     if (chain != null) {
+      expectNumeric(exponent, exponentToken);
+      expectNumeric(chain, chainToken);
+
       chain.setLeftChild(exponent);
       return chain;
     }
@@ -1345,7 +1394,7 @@ public class Parser {
   /**
    * Parses optional extensions to a fact.
    */
-  private Node parseFactPrime() throws IOException, SyntaxException {
+  private Node parseFactPrime() throws IOException, ParserException {
     // Handle ^
     if (!isNext(TokenType.CARAT)) return null;
     consume();
@@ -1353,7 +1402,11 @@ public class Parser {
     // Create new node for exponent
     // <fact>
     Node power = new Node(NodeType.POWER);
+    Token powerToken = nextToken;
     power.setRightChild(parseFact());
+
+    // Propogate type
+    AttributeUtils.propogateDataType(power.getRightChild(), power, powerToken);
     
     return power;
   }
@@ -1361,7 +1414,7 @@ public class Parser {
   /**
    * Parse an exponent.
    */
-  private Node parseExponent() throws IOException, SyntaxException {
+  private Node parseExponent() throws IOException, ParserException {
     // Handle possible negative
     boolean isNegative = false;
     if (isNext(TokenType.MINUS)) {
@@ -1384,8 +1437,9 @@ public class Parser {
         nextToken.getColumn()
       );
       symbol.addAttribute(new IntegerConstantAttribute(lexeme));
+      symbol.addAttribute(new DataTypeAttribute(new DataType("int")));
       node.setSymbol(symbol);
-      symbolManager.insertSymbol(symbol);
+      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
 
       consume();
       return node;
@@ -1406,8 +1460,9 @@ public class Parser {
         nextToken.getColumn()
       );
       symbol.addAttribute(new FloatConstantAttribute(lexeme));
+      symbol.addAttribute(new DataTypeAttribute(new DataType("real")));
       node.setSymbol(symbol);
-      symbolManager.insertSymbol(symbol);
+      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
 
       consume();
       return node;
@@ -1427,6 +1482,12 @@ public class Parser {
     // Handle true
     if (isNext(TokenType.TRUE)) {
       Node node = new Node(NodeType.TRUE);
+
+      // Create symbol for type checking
+      Symbol symbol = new Symbol(SymbolType.TEMPORARY, nextToken);
+      symbol.addAttribute(new DataTypeAttribute(new DataType("bool")));
+      node.setSymbol(symbol);
+
       consume();
       return node;
     }
@@ -1434,6 +1495,12 @@ public class Parser {
     // Handle false
     if (isNext(TokenType.FALSE)) {
       Node node = new Node(NodeType.FALSE);
+
+      // Create symbol for type checking
+      Symbol symbol = new Symbol(SymbolType.TEMPORARY, nextToken);
+      symbol.addAttribute(new DataTypeAttribute(new DataType("bool")));
+      node.setSymbol(symbol);
+
       consume();
       return node;
     }
@@ -1448,19 +1515,20 @@ public class Parser {
 
     // Handle possible function call
     String lexeme = expectIdentifier();
+    Token token = nextToken;
     consume();
     if (isNext(TokenType.LEFT_PAREN)) {
       return parseFunctionCall(lexeme);
     }
 
-    return parseVar(lexeme);
+    return parseVar(lexeme, token);
   }
 
   /**
    * Parse a function call within an exponent.
    * @param lexeme Function called.
    */
-  private Node parseFunctionCall(String lexeme) throws IOException, SyntaxException {
+  private Node parseFunctionCall(String lexeme) throws IOException, ParserException {
     Node node = new Node(NodeType.FUNC_CALL, lexeme);
 
     // Parse (<optelist>)
@@ -1474,7 +1542,7 @@ public class Parser {
   /**
    * Optionally parse function expressions.
    */
-  private Node parseOptFuncExpressionList() throws IOException, SyntaxException {
+  private Node parseOptFuncExpressionList() throws IOException, ParserException {
     if (isNext(TokenType.RIGHT_PAREN)) return null;
     Node node = parseExpressionList();
     return node;
@@ -1483,15 +1551,26 @@ public class Parser {
   /**
    * Parse a boolean.
    */
-  private Node parseBool() throws IOException, SyntaxException {
+  private Node parseBool() throws IOException, ParserException {
+    Token relToken = nextToken;
     Node rel = parseRel();
+    Token chainToken = nextToken;
     Node[] chain = parseOptBool();
 
     if (chain != null) {
+      expectBoolean(rel, relToken);
+      expectBoolean(chain[1], chainToken);
+
       Node node = new Node(NodeType.BOOLEAN);
       node.setLeftChild(rel);
       node.setCentreChild(chain[0]);
       node.setRightChild(chain[1]);
+
+      // Add symbol
+      Symbol symbol = new Symbol(SymbolType.TEMPORARY, chainToken);
+      symbol.addAttribute(new DataTypeAttribute(new DataType("bool")));
+      node.setSymbol(symbol);
+
       return node;
     }
 
@@ -1501,7 +1580,7 @@ public class Parser {
   /**
    * Parse more boolean
    */
-  private Node[] parseOptBool() throws IOException, SyntaxException {
+  private Node[] parseOptBool() throws IOException, ParserException {
     // Attempt to parse logical operator
     Node logicalOp = parseLogicalOp();
     if (logicalOp == null) return null;
@@ -1534,18 +1613,22 @@ public class Parser {
   /**
    * Parse relational statement.
    */
-  private Node parseRel() throws IOException, SyntaxException {
+  private Node parseRel() throws IOException, ParserException {
+    Token notToken = nextToken;
     Node not = parseOptNot();
     Node expression = parseExpression();
 
     // Handle <optrelop>
+    Token relOpToken = notToken;
     Node relOp = parseOptRelOp();
     if (relOp != null) {
       relOp.setLeftChild(expression);
+      AttributeUtils.propogateDataType(expression, relOp, relOpToken);
 
       // Handle possible not
       if (not != null) {
         not.setNextChild(relOp);
+        AttributeUtils.propogateDataType(relOp, not, notToken);
         return not;
       }
 
@@ -1555,6 +1638,7 @@ public class Parser {
     // Handle possible not
     if (not != null) {
       not.setNextChild(expression);
+      AttributeUtils.propogateDataType(expression, not, notToken);
       return not;
     }
 
@@ -1573,7 +1657,7 @@ public class Parser {
   /**
    * Parse an optional relational operator.
    */
-  private Node parseOptRelOp() throws IOException, SyntaxException {
+  private Node parseOptRelOp() throws IOException, ParserException {
     // See if a <relop> is provided
     Node relop = parseRelOp();
     if (relop == null) return null;
@@ -1615,24 +1699,33 @@ public class Parser {
   /**
    * Parse a variable
    */
-  private Node parseVar() throws SyntaxException, IOException {
+  private Node parseVar() throws ParserException, IOException {
     String lexeme = expectIdentifier();
+    Token token = nextToken;
     consume();
-    return parseVar(lexeme);
+    return parseVar(lexeme, token);
   }
 
   /**
    * Parse a variable
    * @param lexeme Lexeme of the variable.
    */
-  private Node parseVar(String lexeme) throws SyntaxException, IOException {
+  private Node parseVar(String lexeme, Token token) throws ParserException, IOException {
     // Handle array variable
     Node arrVar = parseArrayVar(nextToken.getLexeme());
     if (arrVar != null) {
       return arrVar;
     }
 
+    // Resolve symbol and ensure it has been defined
     Symbol symbol = symbolManager.resolve(lexeme);
+    if (symbol == null) {
+      throw new SemanticException(
+        String.format("Variable '%s' has not been defined.", lexeme),
+        token
+      );
+    }
+
     Node node = new Node(NodeType.SIMPLE_VARIABLE, lexeme);
     node.setSymbol(symbol);
     return node;
@@ -1641,7 +1734,7 @@ public class Parser {
   /**
    * Parse a more complex array variable.
    */
-  private Node parseArrayVar(String identifier) throws IOException, SyntaxException {
+  private Node parseArrayVar(String identifier) throws IOException, ParserException {
     // Handle [
     if (!isNext(TokenType.LEFT_BRACKET)) return null;
     consume();

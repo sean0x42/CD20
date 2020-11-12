@@ -4,7 +4,7 @@ import cd20.parser.DataType;
 import cd20.parser.Node;
 
 public enum SymbolType {
-  EXPRESSION,
+  TEMPORARY,
   FUNCTION,
   ARRAY,
   STRUCT,
@@ -12,7 +12,6 @@ public enum SymbolType {
   INTEGER_CONSTANT,
   FLOAT_VARIABLE,
   FLOAT_CONSTANT,
-  STRING_VARIABLE,
   STRING_CONSTANT,
   BOOLEAN_VARIABLE,
   STRUCT_OR_ARRAY_VARIABLE;
@@ -24,8 +23,6 @@ public enum SymbolType {
       return SymbolType.FLOAT_VARIABLE;
     } else if (type.isBoolean()) {
       return SymbolType.BOOLEAN_VARIABLE;
-    } else if (type.isString()) {
-      return SymbolType.STRING_VARIABLE;
     } else {
       return SymbolType.STRUCT_OR_ARRAY_VARIABLE;
     }
@@ -51,7 +48,6 @@ public enum SymbolType {
     switch (this) {
       case INTEGER_VARIABLE:
       case FLOAT_VARIABLE:
-      case STRING_VARIABLE:
       case BOOLEAN_VARIABLE:
         return true;
       default:

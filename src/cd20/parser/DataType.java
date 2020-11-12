@@ -39,6 +39,14 @@ public class DataType {
     return type.startsWith("__array__");
   }
 
+  public boolean isNumeric() {
+    return isReal() || isInteger();
+  }
+
+  public boolean equals(DataType type) {
+    return type.getType().equals(getType());
+  }
+
   @Override
   public String toString() {
     return getType();

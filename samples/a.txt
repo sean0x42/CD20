@@ -2,18 +2,15 @@
 /-- This SHOULD pass!
 CD20 a
 
-constants
-  PI = 3.145
-
-func printX(i: int, boolean: bool): void
-begin
-  print "x";
-end
-
 main
-  x : int
+  shouldDie : bool
 begin
-  println "Hello world";
+  shouldDie = true;
+  print "Should die? ";
+
+  if (shouldDie == true)
+    print "Yes!";
+  end
 end 
 
 CD20 a

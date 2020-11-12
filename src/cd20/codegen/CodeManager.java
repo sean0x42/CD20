@@ -42,8 +42,8 @@ public class CodeManager {
    * Insert a new operation.
    * @param operation Operation to insert.
    */
-  public void insert(Operation operation) {
-    insert(new Instruction(operation));
+  public int insert(Operation operation) {
+    return insert(new Instruction(operation));
   }
 
   /**

@@ -2,15 +2,15 @@
  2 | /-- This SHOULD pass!
  3 | CD20 a
  4 | 
- 5 | /**
- 6 | constants
- 7 |   PI = 3.145
- 8 |   **/
- 9 | 
-10 | func printX(i: int, boolean: bool): void
-11 |   i: bool
-       ^
-     Semantic Error: Duplicate identifier: 'i'
-     (11:3)
-
-12 | begin
+ 5 | main
+ 6 |   shouldDie : bool
+ 7 | begin
+ 8 |   shouldDie = true;
+ 9 |   print "Should die? ";
+10 | 
+11 |   if (shouldDie == true)
+12 |     print "Yes!";
+13 |   end
+14 | end 
+15 | 
+16 | CD20 a

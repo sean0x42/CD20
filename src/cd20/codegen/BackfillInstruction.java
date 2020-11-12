@@ -24,15 +24,14 @@ public class BackfillInstruction extends Instruction {
    * Note: this function must be called after all symbol addresses are known.
    */
   public void backfill() {
-    System.out.println("Backfilling instruction!");
-
     // Determine whether this should be a load address or load value
     boolean isLoadAddress = this.getOperation() == Operation.PLACEHOLDER_LA;
     Operation operation;
 
     if (symbol.getRegister() == null || symbol.getOffset() == Integer.MIN_VALUE) {
       throw new RuntimeException(String.format(
-        "Encountered a symbol that was not ready to be backfilled. (%s)",
+        "Encountered a symbol that was not ready to be backfilled. (%s) [%s]",
+        this.toString(),
         symbol.toString()
       ));
     }
@@ -54,8 +53,6 @@ public class BackfillInstruction extends Instruction {
 
     this.setOperation(operation);
     this.setOperands(ByteUtils.toByteArray(symbol.getOffset()));
-
-    System.out.println(String.format("Backfilled to symbol: %s", symbol.toString()));
   }
 
   /**

@@ -10,4 +10,9 @@ public class FloatConstantAttribute implements Attribute {
   public float getConstant() {
     return constant;
   }
+
+  @Override
+  public String toString() {
+    return String.format("Float constant = %f", constant);
+  }
 }

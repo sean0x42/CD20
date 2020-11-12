@@ -2,6 +2,9 @@ package cd20.codegen;
 
 import java.util.List;
 import java.util.StringJoiner;
+
+import cd20.StringUtils;
+
 import java.util.Arrays;
 
 /**
@@ -46,10 +49,14 @@ public class Instruction {
   @Override
   public String toString() {
     StringJoiner joiner = new StringJoiner(" ");
-    joiner.add(String.format("%s (%d):", operation.name(), operation.getCode()));
+    joiner.add(String.format(
+        "%s (%s):",
+        StringUtils.rightPad(5, operation.name()),
+        StringUtils.leftPad(2, "" + operation.getCode(), '0')
+    ));
 
     for (byte operand : operands) {
-      joiner.add("" + operand);
+      joiner.add(StringUtils.leftPad(2, "" + operand, '0'));
     }
 
     return joiner.toString();
