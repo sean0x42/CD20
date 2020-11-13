@@ -2,14 +2,20 @@
 /-- This SHOULD pass!
 CD20 a
 
-main
-  shouldDie : bool
-begin
-  shouldDie = true;
-  print "Should die? ";
+constants
+  PI = 3.1459 + 10
 
-  if (shouldDie == true)
-    print "Yes!";
+main
+  x: int
+begin
+  for (x = 0; x < 5)
+    x += 1;
+    print "Count: ";
+    println x;
+  end
+
+  if (false == false)
+    println "False!";
   end
 end 
 

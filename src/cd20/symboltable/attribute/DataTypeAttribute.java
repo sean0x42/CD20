@@ -5,6 +5,10 @@ import cd20.parser.DataType;
 public class DataTypeAttribute implements Attribute {
   private DataType type;
 
+  public DataTypeAttribute(String type) {
+    this.type = new DataType(type);
+  }
+
   public DataTypeAttribute(DataType type) {
     this.type = type;
   }

@@ -5,16 +5,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
 
+import cd20.symboltable.attribute.IsParamAttribute;
+
 /**
  * A class which manages a collection of symbol tables and scope.
  */
 public class SymbolTableManager {
   private final Stack<SymbolTable> scope = new Stack<>();
   private final Map<String, SymbolTable> tables = new LinkedHashMap<>();
+  private final SymbolTable constants = new SymbolTable("constants");
 
-  private int registerZeroCounter = 0;
   private int registerOneCounter = 0;
-  private int registerTwoCounter = 0;
+  private int registerTwoParamCounter = -8;
+  private int registerTwoCounter = 16;
 
   /**
    * Get the name of the current scope.
@@ -43,7 +46,10 @@ public class SymbolTableManager {
    * @return A symbol table that exists at this scope.
    */
   public SymbolTable enterScope(String scope) {
-    registerTwoCounter = 0;
+    // Reset register two with each new scope
+    registerTwoParamCounter = -8;
+    registerTwoCounter = 16;
+
     this.scope.push(tables.get(scope));
     return tables.get(scope);
   }
@@ -73,31 +79,44 @@ public class SymbolTableManager {
 
     if (register != null) {
       symbol.setRegister(register);
-      symbol.setOffset(getNextAvailableOffset(register));
+      symbol.setOffset(getNextAvailableOffset(symbol, register));
     }
 
     scope.peek().insertSymbol(symbol);
   }
 
   /**
+   * Insert a new constant.
+   * @param symbol Constant symbol.
+   */
+  public void insertConstant(Symbol symbol) {
+    symbol.setRegister(BaseRegister.CONSTANTS);
+    constants.insertSymbol(symbol);
+  }
+
+  /**
    * Fetch the next available offset for the given register.
+   * @param symbol Symbol.
    * @param register Register to fetch offset from.
    */
-  public int getNextAvailableOffset(BaseRegister register) {
+  public int getNextAvailableOffset(Symbol symbol, BaseRegister register) {
     int offset = 0;
 
     switch (register) {
       case CONSTANTS:
-        offset = registerZeroCounter;
-        registerZeroCounter += 8;
-        break;
+        throw new RuntimeException("Attempted to insert a constant into symbol table.");
       case GLOBALS:
         offset = registerOneCounter;
         registerOneCounter += 8;
         break;
       case DECLARATIONS:
-        offset = registerTwoCounter;
-        registerTwoCounter += 8;
+        if (symbol.hasAttribute(IsParamAttribute.class)) {
+          offset = registerTwoParamCounter;
+          registerTwoParamCounter -= 8;
+        } else {
+          offset = registerTwoCounter;
+          registerTwoCounter += 8;
+        }
         break;
     }
 
@@ -129,6 +148,14 @@ public class SymbolTableManager {
   }
 
   /**
+   * Resolve a constant.
+   * @param name Constant name.
+   */
+  public Symbol resolveConstant(String name) {
+    return constants.resolve(name);
+  }
+
+  /**
    * Determine whether a symbol with the given name exists in the current scope.
    * @param name Name of symbol to search for.
    * @return Whether the symbol exists within the current scope.
@@ -142,18 +169,28 @@ public class SymbolTableManager {
     return tables.values();
   }
 
+  public SymbolTable getConstants() {
+    return constants;
+  }
+
   public void printDebug() {
     System.out.println("\n==================");
     System.out.println("SYMBOL TABLE DEBUG");
     System.out.println("Number of tables: " + tables.size());
     System.out.println("Current scope: " + getScope());
 
+    debugTable("constants", constants);
+
     for (String scope : tables.keySet()) {
       SymbolTable table = tables.get(scope);
-      System.out.println("\n[" + scope + "]");
-      table.printDebug();
+      debugTable(scope, table);
     }
 
     System.out.println("==================");
+  }
+
+  private void debugTable(String scope, SymbolTable table) {
+    System.out.println("\n[" + scope + "]");
+    table.printDebug();
   }
 }

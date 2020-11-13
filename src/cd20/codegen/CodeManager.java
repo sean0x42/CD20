@@ -20,11 +20,8 @@ public class CodeManager {
   private List<Constant<Integer>> integerConstants = new ArrayList<>();
   private List<Constant<Float>> floatConstants = new ArrayList<>();
   private List<Constant<String>> stringConstants = new ArrayList<>();
-  private int codeGenerationPosition;
-
-  public CodeManager() {
-    codeGenerationPosition = 0;
-  }
+  private int codeGenerationPosition = 0;
+  private int lastInstruction = 0;
 
   /**
    * Insert a new instruction.
@@ -32,6 +29,7 @@ public class CodeManager {
    * @return Code generation position of instruction.
    */
   public int insert(Instruction instruction) {
+    lastInstruction = codeGenerationPosition;
     int position = codeGenerationPosition;
     instructions.put(position, instruction);
     codeGenerationPosition += instruction.getSize();
@@ -179,5 +177,13 @@ public class CodeManager {
     }
 
     System.out.println("==================");
+  }
+
+  public int getCodeGenerationPosition() {
+    return codeGenerationPosition;
+  }
+
+  public Instruction getLastInstruction() {
+    return instructions.get(lastInstruction);
   }
 }

@@ -2,17 +2,16 @@ CD20 Variables
 
 main
   idx: int,
-  idx2: int,
-  toBe: bool
+  idx2: int
 begin
   println "Hello World";
-  idx = 10;
+  input idx, idx2;
 
-  if (toBe or not toBe)
-    println "Hmmm";
+  if (idx > idx2)
+    println "Index 1 is greater than index 2.";
   end
 
-  idx2 = idx;
+  println "Done!";
 end
 
 CD20 Variables

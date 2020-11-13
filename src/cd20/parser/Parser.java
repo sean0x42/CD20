@@ -13,6 +13,7 @@ import cd20.scanner.Token;
 import cd20.scanner.TokenType;
 import cd20.symboltable.BaseRegister;
 import cd20.symboltable.Symbol;
+import cd20.symboltable.SymbolBuilder;
 import cd20.symboltable.SymbolTableManager;
 import cd20.symboltable.SymbolType;
 import cd20.symboltable.attribute.*;
@@ -414,7 +415,7 @@ public class Parser {
    */
   private Node parseParam() throws ParserException, IOException {
     // TODO handle array decl and const
-    return parseDeclaration(BaseRegister.DECLARATIONS);
+    return parseDeclaration(BaseRegister.DECLARATIONS, true);
   }
   
   /**
@@ -540,12 +541,8 @@ public class Parser {
   private Node parseForStatement() throws IOException, ParserException {
     // Handle for (
     Node node = new Node(NodeType.FOR);
-    int line = nextToken.getLine();
     expectAndConsume(TokenType.FOR);
     expectAndConsume(TokenType.LEFT_PAREN);
-
-    // Handle scope
-    symbolManager.createScope(String.format("%s_for%d", symbolManager.getScope(), line));
     
     // Handle <asgnlist>;
     node.setNextChild(parseAssignmentList());
@@ -559,7 +556,6 @@ public class Parser {
     node.setNextChild(parseStatements());
     expectAndConsume(TokenType.END);
 
-    symbolManager.leaveScope();
     return node;
   }
 
@@ -692,7 +688,17 @@ public class Parser {
    * Parse a function call statement
    */
   private Node parseFunctionCallStatement(String lexeme) throws IOException, ParserException {
+    Token callToken = nextToken;
     Node node = new Node(NodeType.FUNCTION_CALL, lexeme);
+
+    Symbol symbol = symbolManager.resolve(lexeme);
+    if (symbol == null) {
+      throw new SemanticException(
+          String.format("Unknown function: '%s'", lexeme),
+          callToken
+      );
+    }
+    node.setSymbol(symbol);
 
     // (<optparams>)
     expectAndConsume(TokenType.LEFT_PAREN);
@@ -753,17 +759,33 @@ public class Parser {
    */
   private Node parseAssignment(String lexeme, Token token) throws ParserException, IOException {
     // Handle <var><asgnop>
+    Token varToken = nextToken;
     Node varNode = parseVar(lexeme, token);
     Node asignOp = parseAssignmentOp();
     asignOp.setLeftChild(varNode);
 
     // Find relevant symbol
     Symbol symbol = symbolManager.resolve(lexeme);
+    if (symbol.hasAttribute(ImmutableAttribute.class)) {
+      throw new SemanticException("Attempted to assign to an immutable constant variable.", varToken);
+    }
+
     asignOp.setSymbol(symbol);
     varNode.setSymbol(symbol);
 
     // Handle <bool>
-    asignOp.setRightChild(parseBool());
+    Node bool = parseBool();
+    DataType varType = AttributeUtils.getDataType(varNode);
+    DataType boolType = AttributeUtils.getDataType(bool);
+
+    if (!varType.isAssignable(boolType)) {
+      throw new SemanticException(
+          String.format("Cannot assign type %s to %s.", boolType.toString(), varType.toString()),
+          varToken
+      );
+    }
+
+    asignOp.setRightChild(bool);
 
     return asignOp;
   }
@@ -904,17 +926,19 @@ public class Parser {
     // Handle <string>
     if (isNext(TokenType.STRING_LITERAL)) {
       Node node = new Node(NodeType.STRING, nextToken.getLexeme());
+      String symName = "__string__" + nextToken.getLexeme().replace(" ", "_");
+      Symbol symbol = symbolManager.resolveConstant(symName);
 
-      // Create symbol
-      Symbol symbol = new Symbol(
-        SymbolType.STRING_CONSTANT,
-        "__string__" + nextToken.getLexeme().replace(" ", "_"),
-        nextToken
-      );
-      symbol.addAttribute(new StringConstantAttribute(nextToken.getLexeme()));
+      if (symbol == null) {
+        symbol = SymbolBuilder.fromType(SymbolType.STRING_CONSTANT)
+          .withValue(symName)
+          .withTokenPosition(nextToken)
+          .withAttribute(new StringConstantAttribute(nextToken.getLexeme()))
+          .build();
+        symbolManager.insertConstant(symbol);
+      }
+
       node.setSymbol(symbol);
-      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
-
       consume();
       return node;
     }
@@ -954,17 +978,17 @@ public class Parser {
   private Node parseConstants() throws IOException, ParserException {
     if (!isNext(TokenType.CONSTANTS)) return null;
     consume();
-    return parseInitList(BaseRegister.GLOBALS);
+    return parseInitList();
   }
 
   /**
    * Parse a list of initialisers.
    */
-  private Node parseInitList(BaseRegister register) throws ParserException, IOException {
+  private Node parseInitList() throws ParserException, IOException {
     Node node = new Node(NodeType.INIT_LIST);
 
-    node.setNextChild(parseInit(register));
-    node.setNextChild(parseOptInit(register));
+    node.setNextChild(parseInit());
+    node.setNextChild(parseOptInit());
 
     return node;
   }
@@ -972,7 +996,7 @@ public class Parser {
   /**
    * Parse an initialiser.
    */
-  private Node parseInit(BaseRegister register) throws ParserException, IOException {
+  private Node parseInit() throws ParserException, IOException {
     // Handle identifier
     expect(TokenType.IDENTIFIER);
 
@@ -994,11 +1018,16 @@ public class Parser {
     // Handle expression
     Node expression = parseExpression();
     DataType type = AttributeUtils.getDataType(expression);
-    Symbol symbol = new Symbol(SymbolType.fromDataType(type), initToken);
-    symbol.addAttribute(new DataTypeAttribute(type));
+    Symbol symbol = SymbolBuilder.fromType(SymbolType.fromDataType(type))
+      .withValue(initToken.getLexeme())
+      .withTokenPosition(initToken)
+      .withAttribute(new DataTypeAttribute(type))
+      .withAttribute(new ImmutableAttribute())
+      .build();
+
     node.setSymbol(symbol);
-    symbolManager.insertSymbol(symbol, register);
-    
+    symbolManager.insertSymbol(symbol, BaseRegister.GLOBALS);
+
     node.setNextChild(expression);
 
     return node;
@@ -1007,10 +1036,10 @@ public class Parser {
   /**
    * Parse optionally more initialisers.
    */
-  private Node parseOptInit(BaseRegister register) throws IOException, ParserException {
+  private Node parseOptInit() throws IOException, ParserException {
     if (!isNext(TokenType.COMMA)) return null;
     consume();
-    return parseInitList(register);
+    return parseInitList();
   }
 
   /**
@@ -1118,10 +1147,14 @@ public class Parser {
     return parseFields();
   }
 
+  private Node parseDeclaration(BaseRegister register) throws ParserException, IOException {
+    return parseDeclaration(register, false);
+  }
+
   /**
    * Parse a struct declaration.
    */
-  private Node parseDeclaration(BaseRegister register) throws ParserException, IOException {
+  private Node parseDeclaration(BaseRegister register, boolean isParameter) throws ParserException, IOException {
     // Handle <ident> :
     Token token = nextToken;
     Node node = new Node(NodeType.SDECL, expectIdentifier());
@@ -1145,8 +1178,16 @@ public class Parser {
     DataType type = AttributeUtils.getDataType(dataType);
 
     // Create symbol
-    Symbol symbol = new Symbol(SymbolType.fromDataType(type), token);
-    symbol.addAttribute(new DataTypeAttribute(type));
+    SymbolBuilder builder = SymbolBuilder.fromType(SymbolType.fromDataType(type))
+      .withValue(token.getLexeme())
+      .withTokenPosition(token)
+      .withAttribute(new DataTypeAttribute(type));
+
+    if (isParameter) {
+      builder = builder.withAttribute(new IsParamAttribute());
+    }
+
+    Symbol symbol = builder.build();
     node.setSymbol(symbol);
     symbolManager.insertSymbol(symbol, register);
 
@@ -1428,19 +1469,20 @@ public class Parser {
       String lexeme = nextToken.getLexeme();
       if (isNegative) lexeme = "-" + lexeme;
       Node node = new Node(NodeType.INTEGER_LITERAL, lexeme);
+      Symbol symbol = symbolManager.resolveConstant(lexeme);
 
-      // Create symbol
-      Symbol symbol = new Symbol(
-        SymbolType.INTEGER_CONSTANT,
-        lexeme,
-        nextToken.getLine(),
-        nextToken.getColumn()
-      );
-      symbol.addAttribute(new IntegerConstantAttribute(lexeme));
-      symbol.addAttribute(new DataTypeAttribute(new DataType("int")));
+      // Create symbol if it doesn't exist
+      if (symbol == null) {
+        symbol = SymbolBuilder.fromType(SymbolType.INTEGER_CONSTANT)
+          .withValue(lexeme)
+          .withTokenPosition(nextToken)
+          .withAttribute(new IntegerConstantAttribute(lexeme))
+          .withAttribute(new DataTypeAttribute("int"))
+          .build();
+        symbolManager.insertConstant(symbol);
+      }
+
       node.setSymbol(symbol);
-      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
-
       consume();
       return node;
     }
@@ -1451,19 +1493,20 @@ public class Parser {
       String lexeme = nextToken.getLexeme();
       if (isNegative) lexeme = "-" + lexeme;
       Node node = new Node(NodeType.REAL_LITERAL, lexeme);
+      Symbol symbol = symbolManager.resolveConstant(lexeme);
 
-      // Create symbol
-      Symbol symbol = new Symbol(
-        SymbolType.FLOAT_CONSTANT,
-        lexeme,
-        nextToken.getLine(),
-        nextToken.getColumn()
-      );
-      symbol.addAttribute(new FloatConstantAttribute(lexeme));
-      symbol.addAttribute(new DataTypeAttribute(new DataType("real")));
+      // Create symbol if it doesn't exist
+      if (symbol == null) {
+        symbol = SymbolBuilder.fromType(SymbolType.FLOAT_CONSTANT)
+          .withValue(lexeme)
+          .withTokenPosition(nextToken)
+          .withAttribute(new FloatConstantAttribute(lexeme))
+          .withAttribute(new DataTypeAttribute("real"))
+          .build();
+        symbolManager.insertConstant(symbol);
+      }
+
       node.setSymbol(symbol);
-      symbolManager.insertSymbol(symbol, BaseRegister.CONSTANTS);
-
       consume();
       return node;
     }
@@ -1529,7 +1572,18 @@ public class Parser {
    * @param lexeme Function called.
    */
   private Node parseFunctionCall(String lexeme) throws IOException, ParserException {
+    Token callToken = nextToken;
     Node node = new Node(NodeType.FUNC_CALL, lexeme);
+    
+    // Attempt to resolve symbol
+    Symbol symbol = symbolManager.resolve(lexeme);
+    if (symbol == null) {
+      throw new SemanticException(
+          String.format("Unknown function: '%s'.", lexeme),
+          callToken
+      );
+    }
+    node.setSymbol(symbol);
 
     // Parse (<optelist>)
     expectAndConsume(TokenType.LEFT_PAREN);
@@ -1555,23 +1609,14 @@ public class Parser {
     Token relToken = nextToken;
     Node rel = parseRel();
     Token chainToken = nextToken;
-    Node[] chain = parseOptBool();
+    Node chain = parseOptBool();
 
     if (chain != null) {
       expectBoolean(rel, relToken);
-      expectBoolean(chain[1], chainToken);
+      expectBoolean(chain, chainToken);
 
-      Node node = new Node(NodeType.BOOLEAN);
-      node.setLeftChild(rel);
-      node.setCentreChild(chain[0]);
-      node.setRightChild(chain[1]);
-
-      // Add symbol
-      Symbol symbol = new Symbol(SymbolType.TEMPORARY, chainToken);
-      symbol.addAttribute(new DataTypeAttribute(new DataType("bool")));
-      node.setSymbol(symbol);
-
-      return node;
+      chain.setLeftChild(rel);
+      return chain;
     }
 
     return rel;
@@ -1580,14 +1625,16 @@ public class Parser {
   /**
    * Parse more boolean
    */
-  private Node[] parseOptBool() throws IOException, ParserException {
+  private Node parseOptBool() throws IOException, ParserException {
     // Attempt to parse logical operator
+    Token logicalOpToken = nextToken;
     Node logicalOp = parseLogicalOp();
     if (logicalOp == null) return null;
 
-    Node chain = parseBool();
-    Node[] nodes = { logicalOp, chain };
-    return nodes;
+    Node bool = parseBool();
+    AttributeUtils.propogateDataType(bool, logicalOp, logicalOpToken);
+    logicalOp.setRightChild(bool);
+    return logicalOp;
   }
 
   /**

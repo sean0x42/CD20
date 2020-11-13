@@ -16,7 +16,10 @@ public class InstructionGenerator extends WordFilledGenerator<Instruction> {
 
       // Insert each operand
       for (Byte operand : instruction.getOperands()) {
-        insertByte(operand);
+        // We need to make sure we print the value as if it was an unsigned
+        // byte.
+        int unsignedByte = operand & 0xFF;
+        insertByte(unsignedByte);
       }
     }
 

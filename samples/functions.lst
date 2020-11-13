@@ -1,0 +1,51 @@
+ 1 | CD20 functions
+ 2 | 
+ 3 | /**
+ 4 |  * Adds two numbers together
+ 5 |  **/
+ 6 | func add(alpha: int, beta: int): int
+ 7 | begin
+ 8 |   return alpha + beta;
+ 9 | end
+10 | 
+11 | /**
+12 |  * Divides two numbers
+13 |  **/
+14 | func divide(alpha: real, beta: real): real
+15 |   x : int
+16 | begin
+17 |   return alpha / beta;
+18 | end
+19 | 
+20 | func sayHello(): void
+21 | begin
+22 |   println "Hello";
+23 | end
+24 | 
+25 | main
+26 |   x: int,
+27 |   y: int,
+28 |   a: real,
+29 |   b: real
+30 | begin
+31 |   println "Please enter two numbers add:";
+32 |   input x, y;
+33 |   print "=> "
+34 |   println add(x, y);
+       ^
+     Warning: Expected ';'. Will try continuing anyway.
+     (34:3)
+
+35 | 
+36 |   println "Please enter two numbers divide:";
+37 |   input a, b;
+38 |   print "=> ";
+39 |   println divide(a, b);
+40 | 
+41 |   print "Is true equal to false? ";
+42 |   println true;
+43 | 
+44 |   sayHello();
+45 | end
+46 | 
+47 | CD20 functions

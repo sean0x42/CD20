@@ -47,6 +47,10 @@ public class DataType {
     return type.getType().equals(getType());
   }
 
+  public boolean isAssignable(DataType type) {
+    return (type.isNumeric() && this.isNumeric()) || this.equals(type);
+  }
+
   @Override
   public String toString() {
     return getType();

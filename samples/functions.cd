@@ -12,21 +12,14 @@ end
  * Divides two numbers
  **/
 func divide(alpha: real, beta: real): real
+  x : int
 begin
   return alpha / beta;
 end
 
-/**
- * Determines whether two booleans are equal
- **/
-func isEqual(alpha: bool, beta: bool): bool
-  isEqual : bool
+func sayHello(): void
 begin
-  /-- Turns out you can't do this with the current syntax
-  /-- return alpha == beta;
-
-  isEqual = alpha == beta;
-  return isEqual;
+  println "Hello";
 end
 
 main
@@ -37,14 +30,18 @@ main
 begin
   println "Please enter two numbers add:";
   input x, y;
-  println "=> ", add(x, y);
+  print "=> "
+  println add(x, y);
 
   println "Please enter two numbers divide:";
   input a, b;
-  println "=> ", divide(a, b);
+  print "=> ";
+  println divide(a, b);
 
   print "Is true equal to false? ";
-  println isEqual(true, false);
+  println true;
+
+  sayHello();
 end
 
 CD20 functions

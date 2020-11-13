@@ -1,1 +1,6 @@
-Should die? 
+Please enter two numbers add:
+=>  58
+Please enter two numbers divide:
+=>  3.0
+Is true equal to false? 
+Hello

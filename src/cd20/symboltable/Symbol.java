@@ -136,6 +136,24 @@ public class Symbol {
     return null;
   }
 
+  /**
+   * Determines whether this symbol has an attribute of the given type.
+   * @param clazz Class of attribute to search for.
+   */
+  public <T extends Attribute> boolean hasAttribute(Class<T> clazz) {
+    for (Attribute attribute : attributes) {
+      if (clazz.isInstance(attribute)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public void setAttributes(List<Attribute> attributes) {
+    this.attributes = attributes;
+  }
+
   @Override
   public String toString() {
     StringJoiner joiner = new StringJoiner("\n");

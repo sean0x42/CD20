@@ -56,7 +56,8 @@ public class Instruction {
     ));
 
     for (byte operand : operands) {
-      joiner.add(StringUtils.leftPad(2, "" + operand, '0'));
+      int unsignedByte = operand & 0xFF;
+      joiner.add(StringUtils.leftPad(2, "" + unsignedByte, '0'));
     }
 
     return joiner.toString();

@@ -1,0 +1,17 @@
+ 1 | CD20 Variables
+ 2 | 
+ 3 | main
+ 4 |   idx: int,
+ 5 |   idx2: int
+ 6 | begin
+ 7 |   println "Hello World";
+ 8 |   input idx, idx2;
+ 9 | 
+10 |   if (idx > idx2)
+11 |     println "Index 1 is greater than index 2.";
+12 |   end
+13 | 
+14 |   println "Done!";
+15 | end
+16 | 
+17 | CD20 Variables

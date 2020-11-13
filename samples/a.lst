@@ -2,15 +2,21 @@
  2 | /-- This SHOULD pass!
  3 | CD20 a
  4 | 
- 5 | main
- 6 |   shouldDie : bool
- 7 | begin
- 8 |   shouldDie = true;
- 9 |   print "Should die? ";
-10 | 
-11 |   if (shouldDie == true)
-12 |     print "Yes!";
-13 |   end
-14 | end 
-15 | 
-16 | CD20 a
+ 5 | constants
+ 6 |   PI = 3.1459 + 10
+ 7 | 
+ 8 | main
+ 9 |   x: int
+10 | begin
+11 |   for (x = 0; x < 5)
+12 |     x += 1;
+13 |     print "Count: ";
+14 |     println x;
+15 |   end
+16 | 
+17 |   if (false == false)
+18 |     println "False!";
+19 |   end
+20 | end 
+21 | 
+22 | CD20 a
